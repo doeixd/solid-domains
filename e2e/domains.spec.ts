@@ -52,6 +52,21 @@ test.describe('server rendering', () => {
     )
   })
 
+  test('the social card is declared once and served as a 1200×630 PNG', async ({ request }) => {
+    const html = await (await request.get('/', { headers: { accept: 'text/html' } })).text()
+    for (const tag of ['og:image', 'og:title', 'og:description', 'twitter:card', 'twitter:image']) {
+      expect(html.match(new RegExp(`(property|name)="${tag}"`, 'g')), tag).toHaveLength(1)
+    }
+    expect(html).toContain('content="summary_large_image"')
+    const imageUrl = new URL(html.match(/property="og:image" content="([^"]+)"/)![1]!)
+    const image = await request.get(imageUrl.pathname)
+    expect(image.status()).toBe(200)
+    expect(image.headers()['content-type']).toBe('image/png')
+    const png = await image.body()
+    // PNG IHDR: width and height are big-endian at bytes 16 and 20.
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630])
+  })
+
   test('unknown paths are a real 404', async ({ page }) => {
     const response = await page.goto('/nope')
     expect(response?.status()).toBe(404)
