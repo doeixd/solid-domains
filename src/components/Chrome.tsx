@@ -142,6 +142,10 @@ export const Footer = () => (
     <span>A Solid 2.0 demo · Not affiliated with Vercel</span>
     <span>Sample data · Demo cart</span>
     <a href="/compare">How it compares to the Foldkit original</a>
+    <a href="https://github.com/doeixd/solid-domains">
+      Source
+      <ArrowUpRightIcon />
+    </a>
     <a href="https://github.com/foldkit/foldkit-domains">
       Foldkit original
       <ArrowUpRightIcon />

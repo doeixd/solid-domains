@@ -252,6 +252,10 @@ export default function Compare() {
 
       <footer class="footer">
         <span>A Solid 2.0 demo · Not affiliated with Vercel or Foldkit</span>
+        <a href="https://github.com/doeixd/solid-domains">
+          Source
+          <ArrowUpRightIcon />
+        </a>
         <a href={FOLDKIT_REPO}>
           Foldkit original
           <ArrowUpRightIcon />
