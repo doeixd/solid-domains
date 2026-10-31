@@ -1,8 +1,11 @@
 import { getRequestEvent, serializeCookie } from '@solidjs/web'
+import { GET } from '@solidjs/web/server-functions'
 
-import { CART_COOKIE, MAX_CART_ITEMS, makeDemoDomains, priceCart } from '../data/catalog'
-import { type AvailableDomain, type Domain, domainTlds, queryToLabel } from '../data/domain'
-import { abortableSleep } from '../data/network'
+import { CART_COOKIE, MAX_CART_ITEMS, priceCart } from '../data/catalog'
+import type { AvailableDomain, Domain } from '../data/domain'
+import { type SearchInput, runSearch } from './search'
+
+export type { SearchInput }
 
 /**
  * The backend. These are Solid server functions: on the server (including
@@ -11,45 +14,25 @@ import { abortableSleep } from '../data/network'
  * because anything can call the endpoint.
  */
 
-export type SearchInput = {
-  label: string
-  offset: number
-  limit: number
-  /** Demo-only knobs from the Inspector, clamped server-side. */
-  demo?: { minLatencyMs?: number; maxLatencyMs?: number; failureRate?: number }
-}
+type ResponseEvent = ReturnType<typeof getRequestEvent> & { response?: { headers: Headers } }
 
-const clamp = (value: unknown, min: number, max: number, fallback: number) =>
-  typeof value === 'number' && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback
-
-export class SearchUnavailableError extends Error {
-  constructor() {
-    super('Could not load sample domains. Please try again.')
-    this.name = 'SearchUnavailableError'
-  }
-}
-
-/** Shared by the server function and the REST endpoint in middleware.ts. */
-export const runSearch = async (input: SearchInput, signal?: AbortSignal): Promise<Domain[]> => {
-  const label = typeof input?.label === 'string' ? queryToLabel(input.label) : undefined
-  if (!label || label !== input.label) throw new RangeError('Invalid domain label')
-  const offset = clamp(input.offset, 0, domainTlds.length - 1, 0) | 0
-  const limit = clamp(input.limit, 1, domainTlds.length, domainTlds.length) | 0
-
-  const minLatencyMs = clamp(input.demo?.minLatencyMs, 0, 3000, 0)
-  const maxLatencyMs = clamp(input.demo?.maxLatencyMs, minLatencyMs, 3000, minLatencyMs)
-  const failureRate = clamp(input.demo?.failureRate, 0, 1, 0)
-
-  if (maxLatencyMs > 0) await abortableSleep(minLatencyMs + Math.random() * (maxLatencyMs - minLatencyMs), signal)
-  signal?.throwIfAborted()
-  if (Math.random() < failureRate) throw new SearchUnavailableError()
-  return makeDemoDomains(label, offset, limit)
-}
-
-export async function searchDomains(input: SearchInput): Promise<Domain[]> {
+/**
+ * A declared read: GET() makes the browser call a GET whose URL carries the
+ * arguments, so the HTTP cache can answer a repeat search without a request.
+ * Sample results are deterministic, so a minute of freshness is safe.
+ */
+export const searchDomains = GET(async (input: SearchInput): Promise<Domain[]> => {
   'use server'
-  return runSearch(input, getRequestEvent()?.request.signal)
-}
+  const event = getRequestEvent() as ResponseEvent | undefined
+  const domains = await runSearch(input, event?.request.signal)
+  // Only for calls that arrived over HTTP: during SSR this runs in-process
+  // under the page's request, whose response must stay uncached (the cart
+  // cookie personalizes it).
+  if (event && new URL(event.request.url).pathname.startsWith('/_server')) {
+    event.response?.headers.set('cache-control', 'public, max-age=60, stale-while-revalidate=300')
+  }
+  return domains
+})
 
 /**
  * Persists the cart in a cookie so the next server render includes it (the
@@ -62,7 +45,7 @@ export async function saveCart(names: string[]): Promise<AvailableDomain[]> {
   if (!Array.isArray(names) || names.length > MAX_CART_ITEMS) throw new RangeError('Invalid cart')
 
   const items = priceCart(names.filter(name => typeof name === 'string'))
-  const event = getRequestEvent() as (ReturnType<typeof getRequestEvent> & { response?: { headers: Headers } }) | undefined
+  const event = getRequestEvent() as ResponseEvent | undefined
   event?.response?.headers.append(
     'set-cookie',
     serializeCookie(CART_COOKIE, JSON.stringify(items.map(item => item.name)), {

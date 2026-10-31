@@ -104,6 +104,19 @@ test.describe('search', () => {
     await expect(page).toHaveTitle('riverstone | Domains | Solid 2.0')
   })
 
+  test('searches are cacheable GET reads; the page itself is not cached', async ({ page }) => {
+    await page.goto('/')
+    await hydrated(page)
+    const call = page.waitForResponse(r => r.url().includes('/_server/') && r.url().includes('searchDomains'))
+    await searchBox(page).fill('cachetest')
+    const response = await call
+    expect(response.request().method()).toBe('GET')
+    expect(response.headers()['cache-control']).toContain('max-age=60')
+
+    const document = await page.request.get('/?q=cachetest', { headers: { accept: 'text/html' } })
+    expect(document.headers()['cache-control'] ?? '').not.toContain('max-age')
+  })
+
   test('invalid input explains itself', async ({ page }) => {
     await page.goto('/')
     await hydrated(page)

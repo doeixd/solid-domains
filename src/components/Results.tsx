@@ -160,6 +160,12 @@ function AllResults(props: { label: string }) {
       : withLabel(filterAndSortDomains(all, filters))
   })
 
+  // A failed full-catalog lookup is retried by the same "Try again".
+  createEffect(
+    () => props.label,
+    label => client.registerRetry(label, listings),
+  )
+
   const isRefreshing = () => isPending(() => listings())
   const resolved = () => listings() as Candidate[]
 

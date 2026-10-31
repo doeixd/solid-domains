@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { runSearch } from './domains'
+import { runSearch } from './search'
 import middleware from './middleware'
 
 const instant = { minLatencyMs: 0, maxLatencyMs: 0 }

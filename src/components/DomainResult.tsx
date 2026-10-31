@@ -1,4 +1,4 @@
-import { Loading, Show, createMemo, useContext } from 'solid-js'
+import { Loading, Show, createEffect, createMemo, isPending, useContext } from 'solid-js'
 
 import {
   type AvailableDomain,
@@ -56,7 +56,7 @@ const AvailableAction = (props: { domain: AvailableDomain }) => {
   )
 }
 
-const NotAvailableAction = (props: { result: LookupResult; name: string }) => {
+const NotAvailableAction = (props: { result: LookupResult; name: string; isRetrying: boolean }) => {
   const client = useContext(DomainsContext)
   return (
     <Show
@@ -70,10 +70,11 @@ const NotAvailableAction = (props: { result: LookupResult; name: string }) => {
       }
     >
       <div class="domain-action">
-        <span class="failed-text">Failed</span>
+        <span class="failed-text">{props.isRetrying ? 'Retrying…' : 'Failed'}</span>
         <button
           type="button"
           class="icon-button"
+          disabled={props.isRetrying}
           aria-label={`Retry ${props.name}`}
           onClick={() => client.retry(props.name.slice(0, props.name.indexOf('.')))}
         >
@@ -85,10 +86,10 @@ const NotAvailableAction = (props: { result: LookupResult; name: string }) => {
 }
 
 /** Almost every row is Available: one branch for that, the rest in the fallback. */
-const DomainAction = (props: { result: LookupResult; name: string }) => (
+const DomainAction = (props: { result: LookupResult; name: string; isRetrying: boolean }) => (
   <Show
     when={props.result._tag === 'Available' && (props.result as AvailableDomain)}
-    fallback={<NotAvailableAction result={props.result} name={props.name} />}
+    fallback={<NotAvailableAction result={props.result} name={props.name} isRetrying={props.isRetrying} />}
   >
     {domain => <AvailableAction domain={domain()} />}
   </Show>
@@ -106,17 +107,28 @@ const DomainAction = (props: { result: LookupResult; name: string }) => (
  */
 const useDomain = (candidate: () => Candidate) => {
   const client = useContext(DomainsContext)
-  return createMemo(() => client.lookup(candidate().label, candidate().tld), { deferStream: true })
+  const result = createMemo(() => client.lookup(candidate().label, candidate().tld), { deferStream: true })
+
+  // While this lookup shows "Failed", "Try again" may refresh() it; the
+  // effect's cleanup unregisters it as soon as that changes.
+  createEffect(
+    () => result()._tag === 'Failed',
+    isFailed => (isFailed ? client.registerRetry(candidate().label, result) : undefined),
+  )
+
+  // True while a retry's re-ask is in flight (retry() declares it with affects()).
+  const isRetrying = () => isPending(() => result())
+  return [result, isRetrying] as const
 }
 
 const ResolvedCard = (props: { candidate: Candidate }) => {
-  const result = useDomain(() => props.candidate)
+  const [result, isRetrying] = useDomain(() => props.candidate)
   return (
     <article class={['domain-card', { 'is-unavailable': result()._tag === 'Unconfirmed' }]}>
       <h3>
         <DomainNameText domain={props.candidate} />
       </h3>
-      <DomainAction result={result()} name={props.candidate.name} />
+      <DomainAction result={result()} name={props.candidate.name} isRetrying={isRetrying()} />
     </article>
   )
 }
@@ -137,13 +149,13 @@ export const DomainCard = (props: { candidate: Candidate }) => (
 )
 
 const ResolvedRow = (props: { candidate: Candidate }) => {
-  const result = useDomain(() => props.candidate)
+  const [result, isRetrying] = useDomain(() => props.candidate)
   return (
     <div class={['domain-row', { 'is-unavailable': result()._tag === 'Unconfirmed' }]}>
       <span class="domain-name">
         <DomainNameText domain={props.candidate} />
       </span>
-      <DomainAction result={result()} name={props.candidate.name} />
+      <DomainAction result={result()} name={props.candidate.name} isRetrying={isRetrying()} />
     </div>
   )
 }

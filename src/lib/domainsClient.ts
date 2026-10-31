@@ -1,6 +1,6 @@
 import { type HydrationValue, getHydrationWriter, getRequestEvent, isServer, takeHydrationValue } from '@solidjs/web'
 import { invoke } from '@solidjs/web/server-functions'
-import { createContext, createSignal, getOwner, isHydrating, onCleanup, onHydrationEnd } from 'solid-js'
+import { type SourceAccessor, affects, createContext, createSignal, getOwner, isHydrating, onCleanup, onHydrationEnd, refresh } from 'solid-js'
 
 import {
   type Domain,
@@ -101,9 +101,9 @@ export const createDomainsClient = () => {
     })
   }
 
-  // Reading `epoch()` inside every lookup means a single write re-runs every
-  // failed lookup at once: the "Try again" banner.
-  const [epoch, setEpoch] = createSignal(0)
+  // Memos to re-ask when "Try again" runs, per label: rows register while
+  // they show "Failed", the listing while it is mounted.
+  const retryTargets = new Map<string, Set<SourceAccessor<unknown>>>()
 
   const addLog = (label: string, range: DomainRange, outcome: RequestOutcome) => {
     const id = nextLogId++
@@ -338,10 +338,9 @@ export const createDomainsClient = () => {
   /**
    * One domain's result: synchronous on a cache hit, a Promise otherwise. A
    * failure resolves to a FailedLookup value rather than rejecting, so a row
-   * needs no error boundary of its own; retry() re-runs every lookup.
+   * needs no error boundary of its own; retry() refreshes the registered ones.
    */
   const lookup = (label: string, tld: string): LookupResult | Promise<LookupResult> => {
-    epoch()
     const range = rangeForTld(tld)
     const failed: FailedLookup = { _tag: 'Failed', name: `${label}.${tld}`, tld }
     const pick = (byTld: Map<string, Domain>): LookupResult => byTld.get(tld) ?? failed
@@ -366,7 +365,6 @@ export const createDomainsClient = () => {
 
   /** Every candidate, for availability filtering and price sorting. */
   const lookupAll = (label: string): Domain[] | Promise<Domain[]> => {
-    epoch()
     if (!isServer && isHydrating()) {
       const entry = readWhileHydrating(label, FULL_CATALOG)
       return entry?.status === 'ready' ? [...entry.byTld.values()] : never<Domain[]>()
@@ -394,11 +392,32 @@ export const createDomainsClient = () => {
       return failures.get(label)?.size ?? 0
     },
 
-    /** Re-run every lookup; failed ones refetch, cached ones answer synchronously. */
+    /**
+     * Registers a memo for "Try again" on this label; returns the unregister.
+     * Use as an effect's cleanup so registration follows the memo's state.
+     */
+    registerRetry: (label: string, memo: SourceAccessor<unknown>) => {
+      const targets = retryTargets.get(label) ?? new Set()
+      targets.add(memo)
+      retryTargets.set(label, targets)
+      return () => {
+        targets.delete(memo)
+      }
+    },
+
+    /**
+     * "Try again": failed entries were already dropped from the cache, so
+     * re-asking each registered memo refetches exactly those. affects()
+     * declares the re-ask as a pending change, so isPending() reports it
+     * (a bare refresh() re-asks quietly).
+     */
     retry: (label: string) => {
       failures.delete(label)
       bump()
-      setEpoch(e => e + 1)
+      for (const memo of retryTargets.get(label) ?? []) {
+        affects(memo)
+        void refresh(memo)
+      }
     },
 
     clear: () => {

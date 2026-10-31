@@ -1,4 +1,4 @@
-import { runSearch } from './domains'
+import { runSearch } from './search'
 import { preloadSearch } from './preload'
 
 /**

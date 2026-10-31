@@ -78,7 +78,9 @@ Live at https://solid-domains.doeixd.workers.dev. Deployment state is local (`in
 | `<Loading>` per card/row: names render instantly, prices stream or fill in | `DomainCard`, `DomainRow` |
 | `<Loading on={label}>`: new search shows the skeleton, re-sort keeps the list | `SearchResults` in `src/components/Results.tsx` |
 | `isPending` (dims the held list during a price sort) and `latest` (controls show the new choice) | `AllResults`, `useDisplayedFilters` in `Filters.tsx` |
-| `<Errored>` with `reset` per row, plus an epoch signal for "Try again all" | `DomainResult.tsx`, `lib/domainsClient.ts` |
+| `refresh()` + `affects()`: "Try again" re-asks each failed row's memo, and `isPending` shows "Retrying…" | `useDomain` in `DomainResult.tsx`, `retry` in `lib/domainsClient.ts` |
+| `<Errored>` around the results list and the app; failed lookups resolve to a value instead of throwing | `Results.tsx`, `App.tsx` |
+| `GET()` server function: searches are cacheable GETs (`Cache-Control: max-age=60`) | `searchDomains` in `src/server/domains.ts` |
 | `action` + `createOptimisticStore` + `createOptimistic` flag | `src/lib/cart.ts` |
 | `createProjection` as the `createSelector` replacement (cart membership) | `inCart` in `lib/cart.ts` |
 | Writable derived signal `createSignal(prev => …)` | search layout in `lib/search.ts` |
@@ -95,6 +97,10 @@ Open the **⚡ Solid 2.0** button in the header to see the request log (SSR-adop
 
 - The cart panel, the Inspector panel, and the mobile filter sheets load on first open (`lazy()` under `<Loading>`), which cut the app's entry chunk from about 14 to 8 KB gzip. Shared app modules are grouped into one `app` chunk (`advancedChunks` in `vite.config.ts`), so the search page preloads 3 files instead of 7.
 - Server components (`serverFunctions: { components: true }`) were tried for `/compare` and reverted. The frames-capable transport they need applies to every server-function call, which added about 14 KB gzip to the search page to save a code-split 5 KB on a static page. Slotted server-component rows were ruled out for the same reason.
+
+## Why a hand-written query cache
+
+`@solidjs/router`'s `query(fn, key)` was evaluated as a replacement for `src/lib/domainsClient.ts` and not adopted. On a cache hit it returns a promise (a fresh `.then()` per read), so every read is async and a newly mounted row would flash its skeleton before showing a price already in cache. The hand-written cache answers hits synchronously. It also cancels requests no mounted row needs, debounces typing before the first request, and keeps 100 entries fresh for a minute. Both share the same SSR hand-off mechanism (`getHydrationWriter` / `takeHydrationValue`).
 
 ## Differences from the original
 

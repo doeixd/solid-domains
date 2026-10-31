@@ -113,7 +113,7 @@ export const concepts: ConceptRow[] = [
   {
     concept: 'Backend',
     foldkit: 'Effect RPC with shared Schemas, typed failures, and request bounds.',
-    solid: '"use server" functions (RPC at /_server) plus a small REST API in middleware.',
+    solid: '"use server" functions (RPC at /_server; searches are cacheable GET() reads) plus a small REST API in middleware.',
   },
   {
     concept: 'Cart',

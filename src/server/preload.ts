@@ -10,7 +10,7 @@ import {
   paramsToFilters,
   queryToLabel,
 } from '../data/domain'
-import { runSearch } from './domains'
+import { runSearch } from './search'
 
 /** Same key format as the query cache's entries (src/lib/domainsClient.ts). */
 const preloadKey = (label: string, range: DomainRange) => `${label}:${range.offset}:${range.limit}`
