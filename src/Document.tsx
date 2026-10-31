@@ -28,7 +28,7 @@ export default function Document(props: { children?: JSX.Element }) {
         <meta property="og:title" content="Find a domain for the next viral idea." />
         <meta property="og:description" content={SOCIAL_DESCRIPTION} />
         <meta property="og:url" content={`${SITE_ORIGIN}/`} />
-        <meta property="og:image" content={`${SITE_ORIGIN}/og/domains.png`} />
+        <meta property="og:image" content={`${SITE_ORIGIN}/og/domains.png?v=2`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta
@@ -38,7 +38,7 @@ export default function Document(props: { children?: JSX.Element }) {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Find a domain for the next viral idea." />
         <meta name="twitter:description" content={SOCIAL_DESCRIPTION} />
-        <meta name="twitter:image" content={`${SITE_ORIGIN}/og/domains.png`} />
+        <meta name="twitter:image" content={`${SITE_ORIGIN}/og/domains.png?v=2`} />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="preload" href={geistLatin} as="font" type="font/woff2" crossorigin="anonymous" />
         <HydrationScript />

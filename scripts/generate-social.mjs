@@ -42,13 +42,16 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
     background-size: 60px 60px; mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, #000, transparent 75%); }
   header { position: absolute; top: 44px; left: 64px; right: 64px; display: flex; align-items: center; gap: 18px; font-size: 24px; }
   .divider { color: #333; font-size: 34px; font-weight: 300; }
-  .pill { margin-left: auto; font-size: 17px; color: #ccc; border: 1px solid #2b2b2b; background: #0a0a0a;
-    border-radius: 999px; padding: 8px 16px; display: flex; gap: 8px; align-items: center; }
-  .pill i { width: 8px; height: 8px; border-radius: 50%; background: #3987e5; }
-  main { position: absolute; top: 116px; left: 0; right: 0; text-align: center; }
-  h1 { font-size: 72px; line-height: 1.12; font-weight: 600; letter-spacing: -3.2px; }
+  .pill { margin-left: auto; font-size: 24px; font-weight: 600; color: #fff; border: 1.5px solid #3987e5;
+    background: rgba(57,135,229,.16); border-radius: 999px; padding: 10px 22px; display: flex; gap: 10px;
+    align-items: center; box-shadow: 0 0 32px rgba(57,135,229,.35); }
+  .pill svg { width: 22px; height: 22px; }
+  .eyebrow { font-size: 22px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: #6aa8f0;
+    margin-bottom: 14px; }
+  main { position: absolute; top: 112px; left: 0; right: 0; text-align: center; }
+  h1 { font-size: 64px; line-height: 1.1; font-weight: 600; letter-spacing: -2.8px; }
   h1 span { color: #888; }
-  .search { margin: 34px auto 0; width: 620px; height: 64px; border: 1px solid #666; border-radius: 12px;
+  .search { margin: 26px auto 0; width: 620px; height: 64px; border: 1px solid #666; border-radius: 12px;
     background: #0a0a0a; display: flex; align-items: center; gap: 14px; padding: 0 20px; font-size: 26px;
     box-shadow: 0 0 0 3px #222; text-align: left; }
   .search b { font-weight: 400; flex: 1; }
@@ -58,14 +61,16 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   .card h3 { font-size: 25px; font-weight: 500; letter-spacing: -.4px; margin-bottom: 14px; }
   .row { display: flex; justify-content: space-between; align-items: center; font-size: 21px; }
   .btn { width: 42px; height: 42px; border: 1px solid #292929; border-radius: 8px; display: grid; place-items: center; }
-  footer { position: absolute; left: 64px; right: 64px; bottom: 34px; display: flex; justify-content: space-between;
-    font-size: 18px; color: #888; }
+  footer { position: absolute; left: 64px; right: 64px; bottom: 32px; display: flex; justify-content: space-between;
+    font-size: 20px; color: #bbb; }
   footer b { color: #ededed; font-weight: 500; }
+  footer em { font-style: normal; color: #6aa8f0; font-weight: 600; }
 </style></head><body>
   <div class="glow"></div><div class="grid"></div>
   <header>${logo}<span class="divider">/</span><span>Domains</span>
-    <span class="pill"><i></i>Built with Solid 2.0</span></header>
+    <span class="pill"><svg viewBox="0 0 24 24" fill="#6aa8f0" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Solid 2.0 demo</span></header>
   <main>
+    <p class="eyebrow">A Solid 2.0 demo app</p>
     <h1>Find a domain for<br><span>the next viral idea.</span></h1>
     <div class="search">${search}<b>sunbeam</b><kbd>Esc</kbd></div>
   </main>
@@ -75,7 +80,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
         `<div class="card"><h3>${label}${tld}</h3><div class="row"><span>${price}</span><span class="btn">${cart}</span></div></div>`,
     )
     .join('')}</section>
-  <footer><span>Streaming SSR · Server functions · Optimistic cart · Sample data</span>
+  <footer><span><em>Solid 2.0:</em> streaming SSR · server functions · optimistic actions</span>
     <b>solid-domains.doeixd.workers.dev</b></footer>
 </body></html>`
 
