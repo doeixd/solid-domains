@@ -51,12 +51,12 @@ export const sizeMetrics: Metric[] = [
  * fixtures, the shared 556-entry TLD list, and (here) this comparison page.
  */
 export const codeMetrics: Metric[] = [
-  metric('Application code', 'Non-blank TS/TSX lines, excluding tests', 'lines', [2553, 3280]),
+  metric('Application code', 'Non-blank TS/TSX lines, excluding tests', 'lines', [2415, 3280]),
   metric('Stylesheet', 'Non-blank lines (shared Tailwind base)', 'lines', [867, 710]),
 ]
 
 export const testFacts = {
-  solid: '40 test declarations: Vitest unit tests for pure logic + Playwright against the production build',
+  solid: '44 test declarations: Vitest unit tests for pure logic + Playwright against the production build',
   foldkit: '112 test declarations: Story and Scene tests of update logic + Playwright, including a11y and Worker runs',
 }
 

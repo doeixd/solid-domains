@@ -1,25 +1,36 @@
-import { getRequestEvent, isServer } from '@solidjs/web'
-import { createContext, createMemo, createSignal, createStore, latest, onSettled, snapshot, useContext } from 'solid-js'
+import { useNavigate, useSearchParams } from '@solidjs/router'
+import { createContext, createMemo, createSignal, createStore, latest, onSettled, snapshot, untrack, useContext } from 'solid-js'
 
-import { DEFAULT_FILTERS, type Filters, paramsToFilters, queryToLabel, searchHref } from '../data/domain'
+import { DEFAULT_FILTERS, type Filters, paramsToFilters, queryToLabel, searchParamsFor } from '../data/domain'
 
 export type SearchLayout = 'Landing' | 'Search'
 
-/** The current URL: the request's during SSR, the document's in the browser. */
-const currentUrl = () => new URL(isServer ? (getRequestEvent()?.request.url ?? 'http://localhost/') : location.href)
-
-const readQuery = () => currentUrl().searchParams.get('q') ?? ''
-const readFilters = () => paramsToFilters(currentUrl().searchParams)
-
 /**
  * URL-synchronized search state. The query and filters live in the URL
- * (`?q=acme&sort=price`): edits replace the history entry, Back/Forward
- * restore earlier searches, and the server renders a shared link exactly
- * as it was, sorted and filtered.
+ * (`?q=acme&sort=price`), read and written through the router's
+ * useSearchParams, so the server renders a shared link exactly as it was.
+ *
+ * The local signals stay the source of truth while typing: a URL write is a
+ * router navigation, and reading the query back from it would make the
+ * input and the domain names wait for that navigation. Edits write the URL
+ * with `replace`; Back/Forward (popstate) bring earlier searches back.
  */
 export const createSearchState = () => {
-  const [query, setQuery] = createSignal(readQuery())
-  const [path, setPath] = createSignal(currentUrl().pathname)
+  const [params, setParams] = useSearchParams<{ q?: string; tld?: string; available?: string; sort?: string }>()
+  const navigate = useNavigate()
+
+  const readParams = () =>
+    untrack(() => {
+      const search = new URLSearchParams()
+      for (const key of ['q', 'tld', 'available', 'sort'] as const) {
+        const value = params[key]
+        if (typeof value === 'string') search.set(key, value)
+      }
+      return search
+    })
+
+  const [query, setQuery] = createSignal(readParams().get('q') ?? '')
+  const [filters, setFilters] = createStore<Filters>(paramsToFilters(readParams()))
 
   const label = createMemo(() => queryToLabel(query()))
   const isActive = createMemo(() => query() !== '')
@@ -32,18 +43,16 @@ export const createSearchState = () => {
     query() !== '' ? 'Search' : (prev ?? 'Landing'),
   )
 
-  const [filters, setFilters] = createStore<Filters>(readFilters())
-
   // Event-time writes only: handlers know the next values, so the URL is
   // built from those rather than from reads that lag until the flush.
-  const replaceUrl = (query: string, nextFilters: Filters) =>
-    history.replaceState(history.state, '', searchHref(query, nextFilters))
+  const writeUrl = (nextQuery: string, nextFilters: Filters) =>
+    setParams(searchParamsFor(nextQuery, nextFilters), { replace: true, scroll: false })
 
   onSettled(() => {
     const onPopState = () => {
-      setPath(location.pathname)
-      setQuery(readQuery())
-      setFilters(() => readFilters())
+      const search = new URLSearchParams(location.search)
+      setQuery(search.get('q') ?? '')
+      setFilters(() => paramsToFilters(search))
     }
     addEventListener('popstate', onPopState)
     return () => removeEventListener('popstate', onPopState)
@@ -56,26 +65,22 @@ export const createSearchState = () => {
     isInvalid,
     layout,
     filters,
-    isCompare: () => path() === '/compare',
-    isNotFound: () => !['/', '/index.html', '/compare'].includes(path()),
-    path,
 
     changeQuery: (next: string) => {
       setQuery(next)
-      replaceUrl(next, snapshot(filters))
+      writeUrl(next, snapshot(filters))
     },
     goHome: () => {
       setQuery('')
       setFilters(() => ({ ...DEFAULT_FILTERS }))
       setLayout('Landing')
-      setPath('/')
-      if (location.pathname !== '/' || location.search) history.pushState(null, '', '/')
+      navigate('/')
     },
     setFilter: <K extends keyof Filters>(key: K, value: Filters[K]) => {
       setFilters(draft => {
         draft[key] = value
       })
-      replaceUrl(query(), { ...snapshot(filters), [key]: value })
+      writeUrl(query(), { ...snapshot(filters), [key]: value })
     },
   }
 }

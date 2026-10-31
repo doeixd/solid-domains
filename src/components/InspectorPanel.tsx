@@ -6,19 +6,20 @@ import { UiContext } from '../lib/ui'
 import { CloseIcon } from './Icons'
 
 const FEATURES: ReadonlyArray<[string, string]> = [
-  ['createMemo(async)', 'Every price is a memo returning a cached value or a Promise. No resource API, no loading flags.'],
+  ['query() + createMemo', 'Prices come from a router query keyed by label and range, read with a plain memo. No resource API, no loading flags.'],
+  ['revalidate(keys)', '"Try again" revalidates the failed query keys; query() re-runs every memo reading them.'],
+  ['Route preload', 'The search route preloads its first queries, in parallel with rendering, on the server.'],
   ['<Loading>', 'Each card and row owns one small boundary, so names render instantly and prices fill in as pages land.'],
   ['<Loading on>', 'A new search re-arms the All Results skeleton; re-sorting the same search keeps the list on screen.'],
   ['isPending / latest', 'Price sorting dims the held list with isPending; filter controls show the new choice via latest().'],
-  ['refresh + affects', '"Try again" calls refresh() on the memo of each failed row; affects() makes that read as pending, so rows show "Retrying…". Raise the failure rate below to try it.'],
   ['<Errored>', 'Guards the list and the app; failed lookups resolve to a "Failed" value instead of throwing.'],
   ['GET()', 'searchDomains is a declared GET read, so the HTTP cache of the browser can answer a repeat search for a minute.'],
   ['action + optimistic', 'The cart writes optimistically, saves via a server function (cookie-backed), then commits.'],
   ['createProjection', 'Cart membership is a projection: toggling a domain updates one row, not 556.'],
   ['createSignal(fn)', 'Writable derived layout: follows the query into search mode and stays there until you go home.'],
-  ['onCleanup → abort', 'Rows hold their request; scroll away or keep typing and unheld requests are aborted.'],
-  ['Streaming SSR + preload', 'Middleware preloads what a search page renders, so prices land in the first HTML; deferStream holds anything else.'],
-  ['Hydration channel', 'Server queries and the cart are written with getHydrationWriter; the client adopts them ("ssr" below) instead of refetching.'],
+  ['Debounced lookups', 'query() never cancels, so rows query only once the search has been stable for 150 ms; names render at once.'],
+  ['Streaming SSR', 'deferStream holds the flush for preloaded prices, so they land in the first HTML.'],
+  ['Hydration hand-off', 'query() hands server results to the client, which adopts them instead of refetching; the cart uses getHydrationWriter directly.'],
   ['"use server"', 'searchDomains and saveCart run in-process during SSR and as RPC from the browser (aborted when rows unmount).'],
   ['useHead', 'The document title is rendered by the server and stays reactive in the browser.'],
   ['split createEffect', 'Dialogs and the list measurement bridge to the DOM with compute → apply effects.'],
@@ -54,16 +55,16 @@ export default function InspectorPanel() {
 
         <div class="inspector-stats">
           <div>
-            <strong>{stats().settled}</strong>
-            <span>cached / {stats().maxSettled}</span>
+            <strong>{stats().ranges}</strong>
+                <span>ranges loaded</span>
           </div>
           <div>
             <strong>{stats().inFlight}</strong>
             <span>in flight</span>
           </div>
           <div>
-            <strong>{stats().cacheHits}</strong>
-            <span>cache hits</span>
+            <strong>{stats().log.length}</strong>
+                <span>requests</span>
           </div>
         </div>
 

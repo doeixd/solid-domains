@@ -1,5 +1,4 @@
 import { runSearch } from './search'
-import { preloadSearch } from './preload'
 
 /**
  * Fronts every request (pages, the /_server endpoint) in dev, preview, and
@@ -40,9 +39,6 @@ export default async function middleware(request: Request, next: (request?: Requ
       return json({ error: error instanceof Error ? error.message : 'Unavailable' }, { status })
     }
   }
-
-  const isPage = request.method === 'GET' && (request.headers.get('accept') ?? '').includes('text/html')
-  if (isPage && url.pathname === '/') await preloadSearch(url)
 
   const response = await next()
   if (url.pathname === '/' || url.pathname === '/index.html') {

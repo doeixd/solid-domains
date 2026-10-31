@@ -1,4 +1,4 @@
-import { getRequestEvent, serializeCookie } from '@solidjs/web'
+import { getRequestEvent, respond, serializeCookie } from '@solidjs/web'
 import { GET } from '@solidjs/web/server-functions'
 
 import { CART_COOKIE, MAX_CART_ITEMS, priceCart } from '../data/catalog'
@@ -54,5 +54,8 @@ export async function saveCart(names: string[]): Promise<AvailableDomain[]> {
       maxAge: 60 * 60 * 24 * 30,
     }),
   )
-  return items
+  // Under a router, a POST server function counts as a mutation, and one that
+  // declares no keys revalidates every query on screen (every price). Saving
+  // the cart changes no query: declare an empty set.
+  return respond(items, { revalidate: '' })
 }

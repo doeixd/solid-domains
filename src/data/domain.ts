@@ -197,12 +197,17 @@ export const paramsToFilters = (params: URLSearchParams): Filters => {
   }
 }
 
+/** Search params for a query and filters; defaults are undefined (left out). */
+export const searchParamsFor = (query: string, filters: Filters = DEFAULT_FILTERS) => ({
+  q: query || undefined,
+  tld: filters.tld !== 'All' ? filters.tld : undefined,
+  available: filters.availability === 'Available' ? '1' : undefined,
+  sort: filters.sort !== 'Relevance' ? sortSlugs[filters.sort] : undefined,
+})
+
 export const searchHref = (query: string, filters: Filters = DEFAULT_FILTERS) => {
   const params = new URLSearchParams()
-  if (query) params.set('q', query)
-  if (filters.tld !== 'All') params.set('tld', filters.tld)
-  if (filters.availability === 'Available') params.set('available', '1')
-  if (filters.sort !== 'Relevance') params.set('sort', sortSlugs[filters.sort])
+  for (const [key, value] of Object.entries(searchParamsFor(query, filters))) if (value) params.set(key, value)
   const search = params.toString()
   return search ? `/?${search}` : '/'
 }

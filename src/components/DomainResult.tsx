@@ -1,4 +1,4 @@
-import { Loading, Show, createEffect, createMemo, isPending, useContext } from 'solid-js'
+import { Loading, Show, createMemo, isPending, useContext } from 'solid-js'
 
 import {
   type AvailableDomain,
@@ -96,27 +96,20 @@ const DomainAction = (props: { result: LookupResult; name: string; isRetrying: b
 )
 
 /**
- * The async read. `lookup` hands back a result on a cache hit or a Promise
- * on a miss; either way this memo is just "the domain". While it is a pending
- * Promise, reading it suspends to the enclosing <Loading>. Failures arrive as
- * a value, so rows need no error boundary of their own.
+ * The async read: a memo over the router query, read like any value. While
+ * it is pending, reading it suspends to the enclosing <Loading>; a cached
+ * answer settles within the same transition, so cached rows render without a
+ * skeleton. Failures arrive as a value, so rows need no error boundary.
  *
- * deferStream: on the server, hold the flush until this value resolves.
- * Search pages are preloaded (src/server/preload.ts), so most lookups answer
- * synchronously and nothing waits; the rest resolve in-process.
+ * deferStream: on the server, hold the flush until this value resolves; the
+ * route preload has usually started the query already (src/router.tsx).
  */
 const useDomain = (candidate: () => Candidate) => {
   const client = useContext(DomainsContext)
   const result = createMemo(() => client.lookup(candidate().label, candidate().tld), { deferStream: true })
 
-  // While this lookup shows "Failed", "Try again" may refresh() it; the
-  // effect's cleanup unregisters it as soon as that changes.
-  createEffect(
-    () => result()._tag === 'Failed',
-    isFailed => (isFailed ? client.registerRetry(candidate().label, result) : undefined),
-  )
-
-  // True while a retry's re-ask is in flight (retry() declares it with affects()).
+  // True while a re-ask is in flight, e.g. after "Try again" revalidates the
+  // failed query keys and query() re-runs this memo.
   const isRetrying = () => isPending(() => result())
   return [result, isRetrying] as const
 }

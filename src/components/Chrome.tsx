@@ -1,3 +1,4 @@
+import { useLocation } from '@solidjs/router'
 import { httpStatus } from '@solidjs/web'
 import { Show, useContext } from 'solid-js'
 
@@ -154,22 +155,15 @@ export const Footer = () => (
   </footer>
 )
 
-export const NotFound = (props: { path: string }) => {
-  const search = useContext(SearchContext)
+export const NotFound = () => {
+  const location = useLocation()
   // Lands on the wire with the streamed response's head; a no-op in the browser.
   httpStatus(404)
   return (
     <main class="mx-auto flex min-h-svh max-w-xl flex-col justify-center gap-6 px-6">
       <h1 class="text-4xl font-semibold tracking-tight">404 — Page Not Found</h1>
-      <p class="text-gray-300">The path "{props.path}" was not found.</p>
-      <a
-        href="/"
-        class="w-fit underline underline-offset-4"
-        onClick={event => {
-          event.preventDefault()
-          search.goHome()
-        }}
-      >
+      <p class="text-gray-300">The path "{location.pathname}" was not found.</p>
+      <a href="/" class="w-fit underline underline-offset-4">
         ← Back to Domains
       </a>
     </main>
