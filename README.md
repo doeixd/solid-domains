@@ -100,7 +100,12 @@ Open the **⚡ Solid 2.0** button in the header to see the request log (SSR-adop
 
 ## Why a hand-written query cache
 
-`@solidjs/router`'s `query(fn, key)` was evaluated as a replacement for `src/lib/domainsClient.ts` and not adopted. On a cache hit it returns a promise (a fresh `.then()` per read), so every read is async and a newly mounted row would flash its skeleton before showing a price already in cache. The hand-written cache answers hits synchronously. It also cancels requests no mounted row needs, debounces typing before the first request, and keeps 100 entries fresh for a minute. Both share the same SSR hand-off mechanism (`getHydrationWriter` / `takeHydrationValue`).
+`@solidjs/router`'s `query(fn, key)` is the official keyed cache: name-plus-arguments keys, `keyFor`/`revalidate`, per-request dedupe on the server, automatic `GET` for server functions, and the same SSR hand-off this cache does by hand. It was evaluated and measured, not adopted (yet):
+
+- **It requires the router.** Called under a reactive owner (inside `createMemo`), `query()` calls `useRouter()`, which throws outside a `<Route>`. Adopting it means adopting `@solidjs/router` for routing too.
+- **No cancellation.** `query()` never aborts a request. This cache aborts requests no mounted row holds, so keystrokes superseded during the debounce and rows scrolled away cost nothing.
+- **Cache hits are promises.** Measured on fully cached transitions (re-sorts, scrolling, returning to a query), Solid 2 settles them within the transition: 0 skeletons, versus 4 Top Results cards flashing when returning to a cached query. On the server they cost 2.6 ms of render instead of 1.3 ms, and 5 KB of extra HTML.
+- **Different freshness.** A 5-second preload window, entries kept while observed and dropped 3 minutes after; here, 100 entries fresh for 1 minute. With `GET()` HTTP caching underneath, the difference is small.
 
 ## Differences from the original
 
