@@ -108,6 +108,7 @@ const measureLoad = async (browser, url) => {
 }
 
 const browser = await chromium.launch({ channel: 'chrome' })
+const chromeVersion = browser.version()
 // Interleaved, alternating which site goes first, so drift in machine or
 // network load during the run lands on both sites equally.
 const runsBySite = Object.fromEntries(Object.keys(SITES).map(name => [name, []]))
@@ -118,14 +119,35 @@ for (let i = 0; i < RUNS; i++) {
   }
   process.stdout.write('.')
 }
+const quantile = (values, q) => {
+  const sorted = values.filter(v => Number.isFinite(v)).sort((a, b) => a - b)
+  return sorted.length ? Math.round(sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))]) : null
+}
+// Median plus the interquartile range (25th–75th percentile) per metric, so
+// the page can tell a real difference from run-to-run variation.
 const results = {}
+const spread = {}
 for (const [name, runs] of Object.entries(runsBySite)) {
-  results[name] = Object.fromEntries(Object.keys(runs[0]).map(key => [key, median(runs.map(run => run[key]))]))
+  const keys = Object.keys(runs[0])
+  results[name] = Object.fromEntries(keys.map(key => [key, median(runs.map(run => run[key]))]))
+  spread[name] = Object.fromEntries(keys.map(key => [key, [quantile(runs.map(run => run[key]), 0.25), quantile(runs.map(run => run[key]), 0.75)]]))
   console.log(` ${name}`, results[name])
 }
 await browser.close()
 
 writeFileSync(
   new URL('../src/data/benchmark.json', import.meta.url),
-  `${JSON.stringify({ measuredAt: new Date().toISOString().slice(0, 10), runs: RUNS, query: QUERY, sites: SITES, results }, null, 2)}\n`,
+  `${JSON.stringify(
+    {
+      measuredAt: new Date().toISOString().slice(0, 10),
+      runs: RUNS,
+      query: QUERY,
+      environment: { browser: `Chrome ${chromeVersion} (headless)`, viewport: '1280×900', platform: process.platform },
+      sites: SITES,
+      results,
+      spread,
+    },
+    null,
+    2,
+  )}\n`,
 )

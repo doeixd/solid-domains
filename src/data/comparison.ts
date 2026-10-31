@@ -5,60 +5,145 @@ export { benchmark }
 export const FOLDKIT_REPO = 'https://github.com/foldkit/foldkit-domains'
 export const FOLDKIT_SITE = 'https://domains.foldkit.dev'
 
-type Metric = {
+type Spread = [number | null, number | null]
+
+export type Metric = {
   label: string
   detail: string
-  unit: 'ms' | 'KB' | 'lines'
+  unit: 'ms' | 'KB' | 'lines' | 'tests'
   solid: number
   foldkit: number
+  /** Interquartile range (25th–75th percentile) across runs, when measured. */
+  solidSpread?: Spread
+  foldkitSpread?: Spread
+  /** A footnote for comparisons that are not like for like. */
+  note?: string
 }
 
-type Results = (typeof benchmark.results)['solid']
+type SiteKey = keyof (typeof benchmark.results)['solid']
+type SpreadTable = Record<'solid' | 'foldkit', Record<string, Spread>>
 
-const kb = (bytes: number | null) => Math.round(((bytes ?? 0) / 1024) * 10) / 10
-const ms = (value: number | null) => value ?? 0
+const spreadOf = (site: 'solid' | 'foldkit', key: SiteKey): Spread | undefined =>
+  ('spread' in benchmark ? (benchmark as unknown as { spread: SpreadTable }).spread : undefined)?.[site]?.[key]
 
-const fromResults = (pick: (results: Results) => number): [number, number] => [
-  pick(benchmark.results.solid),
-  pick(benchmark.results.foldkit),
-]
-
-const metric = (label: string, detail: string, unit: Metric['unit'], [solid, foldkit]: [number, number]): Metric => ({
+const timing = (label: string, detail: string, key: SiteKey, note?: string): Metric => ({
   label,
   detail,
-  unit,
-  solid,
-  foldkit,
+  unit: 'ms',
+  solid: benchmark.results.solid[key] ?? 0,
+  foldkit: benchmark.results.foldkit[key] ?? 0,
+  solidSpread: spreadOf('solid', key),
+  foldkitSpread: spreadOf('foldkit', key),
+  note,
+})
+
+const kb = (bytes: number | null) => Math.round(((bytes ?? 0) / 1024) * 10) / 10
+
+const size = (label: string, detail: string, key: SiteKey, note?: string): Metric => ({
+  label,
+  detail,
+  unit: 'KB',
+  solid: kb(benchmark.results.solid[key]),
+  foldkit: kb(benchmark.results.foldkit[key]),
+  note,
 })
 
 /** Lower is better for every row. */
 export const speedMetrics: Metric[] = [
-  metric('Time to first byte', 'Server response starts', 'ms', fromResults(r => ms(r.ttfb))),
-  metric('First paint', 'First contentful paint', 'ms', fromResults(r => ms(r.fcp))),
-  metric('Top Results priced', 'All four cards show a price', 'ms', fromResults(r => ms(r.topPrices))),
-  metric('First page priced', '“60 of 556 domains checked”', 'ms', fromResults(r => ms(r.firstPage))),
-  metric('New search', 'Keystroke to four prices, incl. 150 ms debounce', 'ms', fromResults(r => ms(r.search))),
+  timing(
+    'Time to first byte',
+    'Server response starts',
+    'ttfb',
+    'Not the same work: Solid’s server renders ~37 priced rows; Foldkit’s renders a shell without prices.',
+  ),
+  timing('First paint', 'First contentful paint', 'fcp'),
+  timing(
+    'Top Results priced',
+    'All four cards show a price',
+    'topPrices',
+    'Solid’s prices are in the first HTML; Foldkit’s arrive over RPC after its bundle loads. Counted at the later of DOM insertion and first paint.',
+  ),
+  timing('First page priced', '“60 of 556 domains checked”', 'firstPage'),
+  timing(
+    'New search',
+    'Keystroke to four prices, incl. 150 ms debounce',
+    'search',
+    'A new query each run, so neither side’s cache helps.',
+  ),
 ]
 
 export const sizeMetrics: Metric[] = [
-  metric('JavaScript', 'Every script the page loads, brotli', 'KB', fromResults(r => kb(r.jsBytes))),
-  metric('HTML', 'Document for ?q=sunbeam, brotli', 'KB', fromResults(r => kb(r.htmlBytes))),
-  metric('CSS', 'Brotli', 'KB', fromResults(r => kb(r.cssBytes))),
+  size(
+    'JavaScript',
+    'Every script the page loads, brotli',
+    'jsBytes',
+    'Foldkit ships its DevTools overlay in production by design; that is part of its total.',
+  ),
+  size(
+    'HTML',
+    'Document for ?q=sunbeam, brotli',
+    'htmlBytes',
+    'Not the same content: Solid’s includes the priced rows and their data for hydration.',
+  ),
+  size(
+    'CSS',
+    'Stylesheets the page loads, brotli',
+    'cssBytes',
+    'Solid’s Inspector styles load only when it opens, so they are not in this total.',
+  ),
 ]
 
 /**
- * Counted 2026-10-31: non-blank lines of TypeScript, excluding tests,
- * fixtures, the shared 556-entry TLD list, and (here) this comparison page.
+ * Counted 2026-10-31 the same way for both: non-blank lines, excluding tests,
+ * fixtures, Story files, and the shared 556-entry TLD list (558 lines each).
+ * Solid's count also excludes this comparison page (Compare.tsx, comparison.ts,
+ * compare.css), which Foldkit has no equivalent of.
  */
+const INSPECTOR_TS_LINES = 186
+const INSPECTOR_CSS_LINES = 78
+
 export const codeMetrics: Metric[] = [
-  metric('Application code', 'Non-blank TS/TSX lines, excluding tests', 'lines', [2463, 3280]),
-  metric('Stylesheet', 'Non-blank lines (shared Tailwind base)', 'lines', [793, 710]),
+  {
+    label: 'Application code',
+    detail: 'Non-blank TS/TSX lines, excluding tests',
+    unit: 'lines',
+    solid: 2516,
+    foldkit: 3280,
+    note: `Solid’s includes its request Inspector (${INSPECTOR_TS_LINES} lines); Foldkit’s DevTools is a separate package, not counted.`,
+  },
+  {
+    label: 'Stylesheet',
+    detail: 'Non-blank CSS lines (shared Tailwind base)',
+    unit: 'lines',
+    solid: 871,
+    foldkit: 710,
+    note: `Solid’s includes the Inspector’s ${INSPECTOR_CSS_LINES} lines.`,
+  },
+  {
+    label: 'Test declarations',
+    detail: 'test()/it() calls, same pattern for both',
+    unit: 'tests',
+    solid: 47,
+    foldkit: 112,
+    note: 'Counts declarations, not coverage; a parameterized test counts once on both sides.',
+  },
 ]
 
 export const testFacts = {
-  solid: '44 test declarations: Vitest unit tests for pure logic + Playwright against the production build',
-  foldkit: '112 test declarations: Story and Scene tests of update logic + Playwright, including a11y and Worker runs',
+  solid: '47 test declarations: 25 Vitest unit tests for pure logic + 22 Playwright tests against the production build',
+  foldkit: '112 test declarations: 57 Story and Scene tests of update logic + 55 Playwright tests, including a11y and Worker runs',
 }
+
+/** Where the two sides are not measured or built on equal terms. */
+export const caveats = [
+  'Different work per page. Solid renders prices on the server; Foldkit renders a shell and fetches prices in the browser. First byte, HTML size, and “prices on screen” all reflect that choice, not just framework speed.',
+  'Foldkit ships its DevTools overlay in production by design, which is part of its JavaScript. Solid’s dev toolbar (@solidjs/start-devtools) is development-only by design and is not in production builds; this app’s own request Inspector is app code, counted in its lines and loaded on demand.',
+  'Before hydration: Foldkit’s bootstrap script makes the input fully work before its bundle runs. Solid’s captures clicks and typing and replays them when it hydrates; nothing happens on screen until then.',
+  'Hosting: Foldkit is served from a custom domain on a Cloudflare zone, Solid from workers.dev. Both are Cloudflare Workers, but zone settings (protocols, caching features) can differ.',
+  'Sizes are what the server sends when asked for brotli. Chrome actually receives zstd from Cloudflare; the absolute numbers differ slightly, the comparison does not.',
+  'One machine and network, desktop Chrome headless at 1280×900, no CPU or network throttling. Phone-class devices are not measured.',
+  'Timings are medians with the interquartile range across runs; differences whose ranges overlap are reported as within run-to-run variation.',
+]
 
 export type ConceptRow = { concept: string; foldkit: string; solid: string }
 
@@ -81,7 +166,7 @@ export const concepts: ConceptRow[] = [
   {
     concept: 'Async data',
     foldkit: 'A KeyedQuery block in the Model; AsyncData values folded into a SearchViewState union.',
-    solid: 'A memo that returns a value or a Promise; <Loading> and <Errored> boundaries handle the rest.',
+    solid: 'A router query() keyed by label and range, read with plain createMemo; <Loading> and <Errored> handle the rest.',
   },
   {
     concept: 'Progressive loading',
@@ -91,13 +176,13 @@ export const concepts: ConceptRow[] = [
   {
     concept: 'Cancellation',
     foldkit: 'Query generations reject stale completions; interrupted Commands abort RPCs.',
-    solid: 'Rows hold requests through onCleanup; requests nobody holds are aborted.',
+    solid: 'None: query() never aborts. Lookups wait until the search is stable for 150 ms, so typing a word sends requests for the final query only.',
   },
   {
     concept: 'Server rendering',
     foldkit: 'Prerendered and request-time SSR of the shell; prices load in the browser over RPC.',
     solid:
-      'Streaming SSR with a route preload: the data a page renders is fetched before rendering, so prices land in the first HTML, and the client adopts them without refetching.',
+      'Streaming SSR with an app-level router preload (a loader): the first ranges are fetched before render, rows read them synchronously, and the browser adopts the data.',
   },
   {
     concept: 'Before hydration',
@@ -108,7 +193,7 @@ export const concepts: ConceptRow[] = [
   {
     concept: 'Virtual list',
     foldkit: '@foldkit/ui VirtualList with measured, dynamic row heights.',
-    solid: 'Hand-rolled window virtualization with fixed row heights per breakpoint.',
+    solid: 'Hand-rolled window virtualization with fixed row heights per breakpoint (long names are truncated).',
   },
   {
     concept: 'Backend',
@@ -122,8 +207,8 @@ export const concepts: ConceptRow[] = [
   },
   {
     concept: 'Tooling',
-    foldkit: 'Shipped DevTools: Message, Model, and Command timeline with inspect mode.',
-    solid: 'A request inspector: SSR adoption, debounces, aborts, cache hits, injected latency and failures.',
+    foldkit: 'Shipped DevTools: Message, Model, Command, and Mount timeline with inspect mode.',
+    solid: 'A request inspector: the request log, ranges loaded, and injected latency and failures.',
   },
   {
     concept: 'Deploy',
@@ -142,7 +227,7 @@ export const strengths = {
   solid: [
     'Fine-grained updates with no virtual DOM: a cart toggle re-renders one row, not the view.',
     'Prices arrive in the first HTML response instead of after the bundle and an RPC.',
-    'Async is just a value: no query block, no AsyncData union, no loading flags.',
+    'Async reads are plain memos over router queries: no AsyncData union, no loading flags.',
     'The cart is a server-checked, optimistic mutation that survives reloads.',
   ],
 }

@@ -2,6 +2,11 @@
   "measuredAt": "2026-10-31",
   "runs": 15,
   "query": "sunbeam",
+  "environment": {
+    "browser": "Chrome 156.0.8078.74 (headless)",
+    "viewport": "1280×900",
+    "platform": "win32"
+  },
   "sites": {
     "foldkit": "https://domains.foldkit.dev",
     "solid": "https://solid-domains.doeixd.workers.dev"
@@ -9,27 +14,113 @@
   "results": {
     "foldkit": {
       "ttfb": 49,
-      "fcp": 168,
-      "topPrices": 580,
-      "firstPage": 629,
+      "fcp": 144,
+      "topPrices": 573,
+      "firstPage": 624,
       "requests": 9,
       "htmlBytes": 4638,
-      "jsBytes": 220162,
+      "jsBytes": 220038,
       "cssBytes": 8205,
       "fontBytes": 29400,
-      "search": 245
+      "search": 240
     },
     "solid": {
-      "ttfb": 51,
-      "fcp": 160,
-      "topPrices": 160,
-      "firstPage": 192,
+      "ttfb": 48,
+      "fcp": 156,
+      "topPrices": 156,
+      "firstPage": 176,
       "requests": 7,
-      "htmlBytes": 5095,
-      "jsBytes": 77508,
+      "htmlBytes": 5096,
+      "jsBytes": 77506,
       "cssBytes": 8823,
       "fontBytes": 29400,
-      "search": 214
+      "search": 213
+    }
+  },
+  "spread": {
+    "foldkit": {
+      "ttfb": [
+        43,
+        56
+      ],
+      "fcp": [
+        132,
+        172
+      ],
+      "topPrices": [
+        556,
+        586
+      ],
+      "firstPage": [
+        612,
+        646
+      ],
+      "requests": [
+        9,
+        9
+      ],
+      "htmlBytes": [
+        4638,
+        4638
+      ],
+      "jsBytes": [
+        219980,
+        220044
+      ],
+      "cssBytes": [
+        8205,
+        8205
+      ],
+      "fontBytes": [
+        29400,
+        29400
+      ],
+      "search": [
+        232,
+        245
+      ]
+    },
+    "solid": {
+      "ttfb": [
+        42,
+        54
+      ],
+      "fcp": [
+        152,
+        168
+      ],
+      "topPrices": [
+        152,
+        168
+      ],
+      "firstPage": [
+        170,
+        182
+      ],
+      "requests": [
+        7,
+        7
+      ],
+      "htmlBytes": [
+        5096,
+        5096
+      ],
+      "jsBytes": [
+        77502,
+        77708
+      ],
+      "cssBytes": [
+        8823,
+        8823
+      ],
+      "fontBytes": [
+        29400,
+        29400
+      ],
+      "search": [
+        213,
+        214
+      ]
     }
   }
 }

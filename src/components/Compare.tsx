@@ -4,7 +4,9 @@ import { For, Show } from 'solid-js'
 import {
   FOLDKIT_REPO,
   FOLDKIT_SITE,
+  type Metric,
   benchmark,
+  caveats,
   codeMetrics,
   concepts,
   sizeMetrics,
@@ -15,15 +17,26 @@ import {
 import { ArrowUpRightIcon } from './Icons'
 import './compare.css'
 
-type Metric = (typeof speedMetrics)[number]
+const format = (value: number, unit: Metric['unit']) => `${value.toLocaleString('en-US')} ${unit}`
 
-const format = (value: number, unit: Metric['unit']) =>
-  unit === 'lines' ? `${value.toLocaleString('en-US')} lines` : `${value.toLocaleString('en-US')} ${unit}`
+type Spread = [number | null, number | null]
 
-/** Honest both ways: says "smaller" or "larger" depending on the numbers. */
+const overlaps = (a?: Spread, b?: Spread) =>
+  !!a && !!b && a[0] !== null && a[1] !== null && b[0] !== null && b[1] !== null && a[0] <= b[1] && b[0] <= a[1]
+
+/**
+ * Honest both ways: says "smaller" or "larger" depending on the numbers, and
+ * calls a timing difference noise when the two interquartile ranges overlap.
+ */
 const difference = (metric: Metric) => {
   const { solid, foldkit, unit } = metric
   if (!solid || !foldkit) return '—'
+  if (overlaps(metric.solidSpread, metric.foldkitSpread)) return 'within run-to-run variation'
+  if (unit === 'tests') {
+    if (solid === foldkit) return 'the same'
+    const ratio = (Math.max(solid, foldkit) / Math.min(solid, foldkit)).toFixed(1)
+    return `${ratio}× ${solid < foldkit ? 'fewer' : 'more'}`
+  }
   if (Math.abs(solid - foldkit) / Math.max(solid, foldkit) < 0.05) return 'about the same'
   const better = solid < foldkit
   const [less, more] = unit === 'ms' ? ['faster', 'slower'] : unit === 'lines' ? ['fewer', 'more'] : ['smaller', 'larger']
@@ -34,13 +47,19 @@ const difference = (metric: Metric) => {
   return solid / foldkit >= 1.95 ? `${(solid / foldkit).toFixed(1)}× ${more}` : `${Math.round((solid / foldkit - 1) * 100)}% ${more}`
 }
 
-const Bar = (props: { value: number; max: number; unit: Metric['unit']; series: 'solid' | 'foldkit' }) => (
+const rangeText = (spread?: Spread) =>
+  spread && spread[0] !== null && spread[1] !== null ? `${spread[0]}–${spread[1]}` : undefined
+
+const Bar = (props: { value: number; max: number; unit: Metric['unit']; series: 'solid' | 'foldkit'; spread?: Spread }) => (
   <div class="bar-cell" title={`${props.series === 'solid' ? 'Solid 2.0' : 'Foldkit'}: ${format(props.value, props.unit)}`}>
     {/* The track is the full scale, so bar widths are true proportions. */}
     <span class="bar-track" aria-hidden="true">
       <span class={['bar', `bar-${props.series}`]} style={{ width: `${Math.max(1, (props.value / props.max) * 100)}%` }} />
     </span>
-    <span class="bar-value">{format(props.value, props.unit)}</span>
+    <span class="bar-value">
+      {format(props.value, props.unit)}
+      <Show when={rangeText(props.spread)}>{range => <span class="bar-range">IQR {range()}</span>}</Show>
+    </span>
   </div>
 )
 
@@ -70,12 +89,25 @@ const MetricTable = (props: { title: string; caption: string; metrics: Metric[] 
               <th scope="row">
                 {metric.label}
                 <span class="metric-detail">{metric.detail}</span>
+                <Show when={metric.note}>{note => <span class="metric-note">Note: {note()}</span>}</Show>
               </th>
               <td data-label="Solid 2.0">
-                <Bar value={metric.solid} max={Math.max(metric.solid, metric.foldkit)} unit={metric.unit} series="solid" />
+                <Bar
+                  value={metric.solid}
+                  max={Math.max(metric.solid, metric.foldkit)}
+                  unit={metric.unit}
+                  series="solid"
+                  spread={metric.solidSpread}
+                />
               </td>
               <td data-label="Foldkit">
-                <Bar value={metric.foldkit} max={Math.max(metric.solid, metric.foldkit)} unit={metric.unit} series="foldkit" />
+                <Bar
+                  value={metric.foldkit}
+                  max={Math.max(metric.solid, metric.foldkit)}
+                  unit={metric.unit}
+                  series="foldkit"
+                  spread={metric.foldkitSpread}
+                />
               </td>
               <td class="metric-difference">{difference(metric)}</td>
             </tr>
@@ -123,7 +155,8 @@ export default function Compare() {
           <p>
             This site recreates{' '}
             <a href={FOLDKIT_REPO}>foldkit-domains</a>, an Elm-style app built with Foldkit and Effect, using Solid 2.0
-            primitives. Same features, same sample data, same Cloudflare host. Here is what changed, measured.
+            primitives: the same search, filters, and cart over the same sample data, both on Cloudflare Workers.
+            Here is what changed, measured, and <a href="#caveats">where the two are not like for like</a>.
           </p>
           <Show when={isMeasured}>
             <div class="headline-stats">
@@ -140,7 +173,7 @@ export default function Compare() {
         >
           <MetricTable
             title="Speed"
-            caption={`Median of ${benchmark.runs} cold loads of /?q=${benchmark.query} per site in headless Chrome (1280×900), measured ${benchmark.measuredAt}. Lower is better.`}
+            caption={`Median (and interquartile range) of ${benchmark.runs} cold loads of /?q=${benchmark.query} per site, alternating between sites, measured ${benchmark.measuredAt}. Lower is better.`}
             metrics={speedMetrics}
           />
           <MetricTable
@@ -151,7 +184,7 @@ export default function Compare() {
         </Show>
         <MetricTable
           title="Code"
-          caption="Same feature set. Counts exclude tests, fixtures, and the shared 556-entry TLD list."
+          caption="Counted the same way for both: non-blank lines, excluding tests, fixtures, Story files, and the shared 556-entry TLD list. Solid’s count also excludes this comparison page, which Foldkit has no equivalent of."
           metrics={codeMetrics}
         />
 
@@ -173,6 +206,13 @@ export default function Compare() {
               <dd>{testFacts.foldkit}</dd>
             </div>
           </dl>
+        </section>
+
+        <section id="caveats" class="compare-section" aria-labelledby="caveats-heading">
+          <h2 id="caveats-heading">What is not apples to apples</h2>
+          <ul class="method-list">
+            <For each={caveats}>{item => <li>{item}</li>}</For>
+          </ul>
         </section>
 
         <section class="compare-section" aria-labelledby="concepts-heading">
@@ -227,22 +267,19 @@ export default function Compare() {
           <h2 id="method-heading">How this was measured</h2>
           <ul class="method-list">
             <li>
-              Both sites as deployed: <a href={FOLDKIT_SITE}>{FOLDKIT_SITE.replace('https://', '')}</a> and this one, both
-              on Cloudflare Workers, measured from the same machine and network.
+              Both sites as deployed: <a href={FOLDKIT_SITE}>{FOLDKIT_SITE.replace('https://', '')}</a> and this one,
+              from the same machine and network, in {benchmark.environment?.browser ?? 'headless Chrome'} at{' '}
+              {benchmark.environment?.viewport ?? '1280×900'}.
             </li>
             <li>
-              Each run is a fresh browser context (cold cache). Milestones are recorded with a MutationObserver,
-              so streamed server HTML counts the moment the parser inserts it.
+              Each run is a fresh browser context (cold cache), alternating which site goes first. Milestones are
+              recorded with a MutationObserver and counted no earlier than first paint.
             </li>
             <li>
               Neither backend adds artificial latency. Both apps debounce typing by 150 ms, which is included in the
               search timing.
             </li>
-            <li>
-              Foldkit ships its DevTools overlay in production by design, which accounts for part of its JavaScript.
-              Its smaller first response and earlier first paint come from sending a lighter shell; Solid streams the
-              prices into that first response instead.
-            </li>
+            <li>Sizes: each file the page loaded, fetched again asking for brotli and counted as received.</li>
             <li>
               Reproduce with <code>node scripts/benchmark.mjs</code>.
             </li>
