@@ -25,6 +25,19 @@ export const modal = (isOpen: () => boolean, onClose: () => void) => {
   }
 }
 
+/**
+ * Handles a form's submit in the page instead of posting it. Listening on the
+ * form itself runs before the router's document-level submit delegation,
+ * which skips the event once it is default-prevented, so the form's `action`
+ * is used only without JavaScript.
+ */
+export const submitWith = (onSubmit: () => void) => (form: HTMLFormElement) => {
+  form.addEventListener('submit', event => {
+    event.preventDefault()
+    onSubmit()
+  })
+}
+
 /** Reports an element's content-box width, for the virtual list's column count. */
 export const observeWidth = (onWidth: (width: number) => void) => {
   let observer: ResizeObserver | undefined

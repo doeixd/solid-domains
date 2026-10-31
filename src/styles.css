@@ -946,9 +946,85 @@
     @apply absolute top-[calc(100%+6px)] right-0;
   }
 
+  /* Grid geometry for the virtual list, at the same container breakpoints as
+     VirtualList's columns(): server HTML lands in the right place on every
+     screen, with no re-layout at hydration. */
+  .results-viewport {
+    --cols: 3;
+    --row-h: 57px;
+  }
+
+  @container (max-width: 944px) {
+    .results-viewport {
+      --cols: 2;
+    }
+  }
+
+  @container (max-width: 668px) {
+    .results-viewport {
+      --cols: 1;
+      --row-h: 61px;
+    }
+  }
+
+  .results-viewport:not(.is-single-result) {
+    height: calc(round(up, var(--n) / var(--cols), 1) * var(--row-h));
+  }
+
+  /* Without JavaScript: the plain filter form and pager replace the
+     scripted controls, and the list's server window flows as a normal grid
+     instead of absolutely positioned rows. Hidden whenever scripts run. */
+  .nojs-only {
+    @apply hidden;
+  }
+
+  /* The cart button's form takes no box of its own. */
+  .cart-form {
+    @apply contents;
+  }
+
+  @media (scripting: none) {
+    .filters > :not(.nojs-filters) {
+      @apply hidden;
+    }
+
+    .nojs-filters {
+      @apply flex flex-wrap items-center gap-3 text-[13px] text-gray-300;
+    }
+
+    .nojs-filters label {
+      @apply flex items-center gap-1.5;
+    }
+
+    .nojs-filters input:not([type]),
+    .nojs-filters select {
+      @apply h-8 rounded-md border border-gray-700 bg-gray-950 px-2 text-gray-100;
+    }
+
+    .nojs-pager {
+      @apply mt-4 flex items-center gap-4 text-[13px] text-gray-300;
+    }
+
+    .nojs-pager a {
+      @apply text-gray-100 underline underline-offset-2;
+    }
+
+    .results-viewport:not(.is-single-result) {
+      @apply grid h-auto;
+      grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    }
+
+    .results-viewport .virtual-cell {
+      @apply static w-auto transform-none;
+    }
+  }
+
   .virtual-cell {
     @apply absolute top-0 list-none;
-    height: var(--row-height);
+    height: var(--row-h);
+    width: calc(100% / var(--cols));
+    left: calc(mod(var(--i), var(--cols)) * 100% / var(--cols));
+    transform: translateY(calc(round(down, var(--i) / var(--cols), 1) * var(--row-h)));
   }
 
   .virtual-cell > .domain-row {

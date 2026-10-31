@@ -13,47 +13,47 @@
   },
   "results": {
     "foldkit": {
-      "ttfb": 49,
-      "fcp": 144,
-      "topPrices": 573,
-      "firstPage": 624,
+      "ttfb": 56,
+      "fcp": 216,
+      "topPrices": 831,
+      "firstPage": 929,
       "requests": 9,
       "htmlBytes": 4638,
       "jsBytes": 220038,
       "cssBytes": 8205,
       "fontBytes": 29400,
-      "search": 240
+      "search": 312
     },
     "solid": {
-      "ttfb": 48,
-      "fcp": 156,
-      "topPrices": 156,
-      "firstPage": 176,
+      "ttfb": 55,
+      "fcp": 220,
+      "topPrices": 220,
+      "firstPage": 288,
       "requests": 7,
-      "htmlBytes": 5096,
-      "jsBytes": 77506,
-      "cssBytes": 8823,
+      "htmlBytes": 5534,
+      "jsBytes": 81134,
+      "cssBytes": 9125,
       "fontBytes": 29400,
-      "search": 213
+      "search": 242
     }
   },
   "spread": {
     "foldkit": {
       "ttfb": [
-        43,
-        56
+        49,
+        60
       ],
       "fcp": [
-        132,
-        172
+        196,
+        244
       ],
       "topPrices": [
-        556,
-        586
+        770,
+        1008
       ],
       "firstPage": [
-        612,
-        646
+        849,
+        1110
       ],
       "requests": [
         9,
@@ -65,61 +65,61 @@
       ],
       "jsBytes": [
         219980,
-        220044
+        220162
       ],
       "cssBytes": [
         8205,
-        8205
+        8207
       ],
       "fontBytes": [
         29400,
         29400
       ],
       "search": [
-        232,
-        245
+        301,
+        342
       ]
     },
     "solid": {
       "ttfb": [
-        42,
-        54
+        50,
+        68
       ],
       "fcp": [
-        152,
-        168
+        200,
+        240
       ],
       "topPrices": [
-        152,
-        168
+        200,
+        240
       ],
       "firstPage": [
-        170,
-        182
+        271,
+        305
       ],
       "requests": [
         7,
         7
       ],
       "htmlBytes": [
-        5096,
-        5096
+        5534,
+        5534
       ],
       "jsBytes": [
-        77502,
-        77708
+        81127,
+        81169
       ],
       "cssBytes": [
-        8823,
-        8823
+        9122,
+        9125
       ],
       "fontBytes": [
         29400,
         29400
       ],
       "search": [
-        213,
-        214
+        227,
+        261
       ]
     }
   }

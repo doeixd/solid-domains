@@ -141,6 +141,29 @@ export const sortNames = (names: DomainName[], sort: SortOrder): DomainName[] =>
   }
 }
 
+/** The list for a name-only ordering: what it shows when no prices are needed. */
+export const nameListing = (label: string, filters: Filters): DomainName[] =>
+  sortNames(
+    domainCandidates(label).filter(candidate => filters.tld === 'All' || candidate.tld === filters.tld),
+    filters.sort,
+  )
+
+/**
+ * How many results one server render of the list shows: three columns of a
+ * nominal viewport. It is also the page size when JavaScript is off.
+ */
+export const SSR_WINDOW_SIZE = 33
+
+/** The request ranges that price a run of results, deduplicated. */
+export const rangesFor = (names: readonly DomainName[]): DomainRange[] => {
+  const ranges = new Map<number, DomainRange>()
+  for (const name of names) {
+    const range = rangeForTld(name.tld)
+    ranges.set(range.offset, range)
+  }
+  return [...ranges.values()].sort((a, b) => a.offset - b.offset)
+}
+
 /** Orderings and filters over the complete catalog. Unconfirmed names trail price sorts. */
 export const filterAndSortDomains = (domains: readonly Domain[], filters: Filters): DomainName[] => {
   const matching = domains.filter(
@@ -187,6 +210,9 @@ const sortSlugs: Record<SortOrder, string> = {
   PriceDescending: '-price',
 }
 
+/** The `sort` URL value for an ordering ('' for the default). */
+export const sortSlug = (order: SortOrder) => sortSlugs[order]
+
 export const paramsToFilters = (params: URLSearchParams): Filters => {
   const tld = params.get('tld')?.toLowerCase()
   const sortSlug = params.get('sort') ?? ''
@@ -205,9 +231,20 @@ export const searchParamsFor = (query: string, filters: Filters = DEFAULT_FILTER
   sort: filters.sort !== 'Relevance' ? sortSlugs[filters.sort] : undefined,
 })
 
-export const searchHref = (query: string, filters: Filters = DEFAULT_FILTERS) => {
+/**
+ * `from`: the first result a server render shows, for paging without
+ * JavaScript. Whole rows of three, within the catalog; anything else is 0.
+ */
+export const startFromParams = (params: URLSearchParams) => {
+  const from = Math.floor(Number(params.get('from')))
+  if (!Number.isFinite(from) || from <= 0) return 0
+  return Math.min(from - (from % 3), Math.floor((domainTlds.length - 1) / 3) * 3)
+}
+
+export const searchHref = (query: string, filters: Filters = DEFAULT_FILTERS, from = 0) => {
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(searchParamsFor(query, filters))) if (value) params.set(key, value)
+  if (from > 0) params.set('from', String(from))
   const search = params.toString()
   return search ? `/?${search}` : '/'
 }

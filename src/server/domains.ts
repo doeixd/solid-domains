@@ -1,7 +1,7 @@
-import { getRequestEvent, respond, serializeCookie } from '@solidjs/web'
+import { getRequestEvent, parseCookieHeader, respond, serializeCookie } from '@solidjs/web'
 import { GET } from '@solidjs/web/server-functions'
 
-import { CART_COOKIE, MAX_CART_ITEMS, priceCart } from '../data/catalog'
+import { CART_COOKIE, MAX_CART_ITEMS, parseCartCookie, priceCart } from '../data/catalog'
 import type { AvailableDomain, Domain } from '../data/domain'
 import { type SearchInput, runSearch } from './search'
 
@@ -43,8 +43,28 @@ export const searchDomains = GET(async (input: SearchInput): Promise<Domain[]> =
 export async function saveCart(names: string[]): Promise<AvailableDomain[]> {
   'use server'
   if (!Array.isArray(names) || names.length > MAX_CART_ITEMS) throw new RangeError('Invalid cart')
+  return writeCart(priceCart(names.filter(name => typeof name === 'string')))
+}
 
-  const items = priceCart(names.filter(name => typeof name === 'string'))
+/**
+ * The cart for browsers without JavaScript: each cart button sits in a form
+ * that posts here (`serverFunctionActionUrl(changeCart, op, name)`). The
+ * server-function runtime answers a no-JS form post by redirecting back, and
+ * the next render reads the updated cookie. With JavaScript, the form's
+ * submit is handled by the optimistic cart instead and never reaches here.
+ */
+export async function changeCart(op: 'add' | 'remove', name: string): Promise<AvailableDomain[]> {
+  'use server'
+  if ((op !== 'add' && op !== 'remove') || typeof name !== 'string') throw new RangeError('Invalid cart change')
+  const event = getRequestEvent() as ResponseEvent | undefined
+  const current = parseCartCookie(parseCookieHeader(event?.request.headers.get('cookie'))[CART_COOKIE]).map(
+    item => item.name,
+  )
+  const names = op === 'add' ? [...current.filter(item => item !== name), name] : current.filter(item => item !== name)
+  return writeCart(priceCart(names))
+}
+
+const writeCart = (items: AvailableDomain[]) => {
   const event = getRequestEvent() as ResponseEvent | undefined
   event?.response?.headers.append(
     'set-cookie',

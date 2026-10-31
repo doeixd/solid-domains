@@ -3,15 +3,18 @@ import { lazy } from 'solid-js'
 
 import { NotFound } from './components/Chrome'
 import {
-  DOMAIN_PAGE_SIZE,
   type DomainRange,
   type PackedDomains,
   FULL_CATALOG,
+  SSR_WINDOW_SIZE,
   TOP_RESULT_COUNT,
   isFullCatalogRequired,
+  nameListing,
   packDomains,
   paramsToFilters,
   queryToLabel,
+  rangesFor,
+  startFromParams,
 } from './data/domain'
 import SearchPage from './pages/SearchPage'
 import { searchDomains } from './server/domains'
@@ -33,12 +36,16 @@ const preloadSearch = async ({ location, intent }: RoutePreloadFuncArgs): Promis
   const label = queryToLabel(search.get('q') ?? '')
   if (!label) return undefined
   const filters = paramsToFilters(search)
+  // The Top Results plus whatever prices the list's server window shows, so
+  // every rendered row is priced in the HTML. That window is the whole page
+  // when JavaScript is off: streamed-in content would never arrive there.
+  const start = startFromParams(search)
   const wanted: DomainRange[] = isFullCatalogRequired(filters.availability, filters.sort)
     ? [FULL_CATALOG]
-    : [
-        { offset: 0, limit: TOP_RESULT_COUNT },
-        { offset: TOP_RESULT_COUNT, limit: DOMAIN_PAGE_SIZE - TOP_RESULT_COUNT },
-      ]
+    : rangesFor([
+        ...nameListing(label, { ...filters, tld: 'All', sort: 'Relevance' }).slice(0, TOP_RESULT_COUNT),
+        ...nameListing(label, filters).slice(start, start + SSR_WINDOW_SIZE),
+      ])
   const settled = await Promise.allSettled(wanted.map(range => searchDomains({ label, ...range })))
   // A failed range is simply left out: the page fetches it through query().
   const ranges = wanted.flatMap((range, i) => {

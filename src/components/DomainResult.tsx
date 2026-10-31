@@ -1,4 +1,5 @@
 import { Loading, Show, createMemo, isPending, useContext } from 'solid-js'
+import { type ServerFunction, serverFunctionActionUrl } from '@solidjs/web/server-functions'
 
 import {
   type AvailableDomain,
@@ -9,6 +10,12 @@ import {
 } from '../data/domain'
 import { CartContext } from '../lib/cart'
 import { DomainsContext, type LookupResult } from '../lib/domainsClient'
+import { submitWith } from '../lib/refs'
+import { changeCart } from '../server/domains'
+
+// A "use server" function is compiled into a server reference, but its
+// declared type stays the plain async function.
+const changeCartRef = changeCart as unknown as ServerFunction
 import { RetryIcon } from './Icons'
 
 export type Candidate = DomainName & { label: string }
@@ -37,21 +44,30 @@ const AvailableAction = (props: { domain: AvailableDomain }) => {
       <span class="price" title={description()}>
         {formatRegistrationPrice(props.domain)}
       </span>
-      <button
-        type="button"
-        class={['icon-button', { 'is-added': cart.has(props.domain.name) }]}
-        aria-label={
-          cart.has(props.domain.name) ? `Remove ${props.domain.name} from cart` : `Add ${props.domain.name} to cart`
-        }
-        aria-description={`${formatRegistrationPrice(props.domain)}. ${description()}`}
-        onClick={() => cart.toggle(props.domain)}
+      {/* A form so the cart works without JavaScript: it posts to the
+          changeCart server function and the server redirects back. With
+          JavaScript, submitWith runs the optimistic cart instead. */}
+      <form
+        class="cart-form"
+        method="post"
+        action={serverFunctionActionUrl(changeCartRef, cart.has(props.domain.name) ? 'remove' : 'add', props.domain.name)}
+        ref={submitWith(() => cart.toggle(props.domain))}
       >
-        {/* One icon whose sprite reference flips: a single attribute binding
-            instead of a reactive branch (or a second icon) in every row. */}
-        <svg aria-hidden="true" class="icon" width="24" height="24">
-          <use href={cart.has(props.domain.name) ? '#i-check' : '#i-cart'} />
-        </svg>
-      </button>
+        <button
+          type="submit"
+          class={['icon-button', { 'is-added': cart.has(props.domain.name) }]}
+          aria-label={
+            cart.has(props.domain.name) ? `Remove ${props.domain.name} from cart` : `Add ${props.domain.name} to cart`
+          }
+          aria-description={`${formatRegistrationPrice(props.domain)}. ${description()}`}
+        >
+          {/* One icon whose sprite reference flips: a single attribute binding
+              instead of a reactive branch (or a second icon) in every row. */}
+          <svg aria-hidden="true" class="icon" width="24" height="24">
+            <use href={cart.has(props.domain.name) ? '#i-check' : '#i-cart'} />
+          </svg>
+        </button>
+      </form>
     </div>
   )
 }

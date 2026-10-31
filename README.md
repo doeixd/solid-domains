@@ -1,6 +1,6 @@
 # Solid Domains
 
-A Solid 2.0 recreation of [foldkit/foldkit-domains](https://github.com/foldkit/foldkit-domains), an unofficial recreation of the Vercel Domains search. It has streaming SSR, a backend built from server functions, URL-synced search, debounced and cached requests, progressive loading driven by a virtualized list, filters and sorting, mobile sheets, and a cookie-backed demo cart. It deploys to Cloudflare Workers with Alchemy.
+A Solid 2.0 recreation of [foldkit/foldkit-domains](https://github.com/foldkit/foldkit-domains), an unofficial recreation of the Vercel Domains search. It has streaming SSR, a backend built from server functions, URL-synced search, debounced and cached requests, progressive loading driven by a virtualized list, filters and sorting, mobile sheets, and a cookie-backed demo cart. Search, filters, paging, and the cart also work with JavaScript turned off. It deploys to Cloudflare Workers with Alchemy.
 
 Sample prices and availability only. No purchases or reservations.
 
@@ -16,7 +16,7 @@ node scripts/profile-ssr.mjs [path]   # server render time of the built handler 
 node scripts/profile-hydration.mjs [url ...]  # hydration + long tasks, 1× and 4× CPU
 ```
 
-The browser suite covers streamed SSR, hydration without refetching, search and URL sync, scroll paging, shared filter links, keyboard listboxes, the optimistic cookie cart, injected backend failures, mobile sheets, 404s, and axe accessibility checks. Run it against a deployment with `E2E_BASE_URL=https://… npx playwright test`.
+The browser suite covers streamed SSR, hydration without refetching, search and URL sync, scroll paging, shared filter links, keyboard listboxes, the optimistic cookie cart, injected backend failures, mobile sheets, 404s, axe accessibility checks, and the whole app with JavaScript disabled. Run it against a deployment with `E2E_BASE_URL=https://… npx playwright test`.
 
 Requires Node 22.12+ (Solid 2.0 RC, `@solidjs/vite-plugin@next` in start mode, Vite 8, Tailwind 4).
 
@@ -27,19 +27,19 @@ Both versions as deployed, median and interquartile range of 15 cold loads of `/
 | | Solid 2.0 (this repo) | Foldkit original | Solid vs Foldkit |
 |---|--:|--:|---|
 | **Speed**: median (interquartile range) | | | |
-| Time to first byte ¹ | 48 ms (42–54) | 49 ms (43–56) | within run-to-run variation |
-| First paint | 156 ms (152–168) | 144 ms (132–172) | within run-to-run variation |
-| Top Results priced ¹ | 156 ms (152–168) | 573 ms (556–586) | 3.7× faster |
-| First page priced (60 of 556) | 176 ms (170–182) | 624 ms (612–646) | 3.5× faster |
-| New search (keystroke → prices, incl. 150 ms debounce) | 213 ms (213–214) | 240 ms (232–245) | 11% faster |
+| Time to first byte ¹ | 55 ms (50–68) | 56 ms (49–60) | within run-to-run variation |
+| First paint | 220 ms (200–240) | 216 ms (196–244) | within run-to-run variation |
+| Top Results priced ¹ | 220 ms (200–240) | 831 ms (770–1008) | 3.8× faster |
+| First page priced (60 of 556) | 288 ms (271–305) | 929 ms (849–1110) | 3.2× faster |
+| New search (keystroke → prices, incl. 150 ms debounce) | 242 ms (227–261) | 312 ms (301–342) | 22% faster |
 | **Size** (as served, brotli) | | | |
-| JavaScript ² | 75.7 KB | 214.9 KB | 2.8× smaller |
-| HTML ¹ | 5.0 KB | 4.5 KB | 11% larger |
-| CSS | 8.6 KB | 8.0 KB | 7% larger |
+| JavaScript ² | 79.2 KB | 214.9 KB | 2.7× smaller |
+| HTML ¹ | 5.4 KB | 4.5 KB | 20% larger |
+| CSS | 8.9 KB | 8.0 KB | 11% larger |
 | Requests at load | 7 | 9 | 2 fewer |
 | **Code** (counted the same way for both) | | | |
-| Application code (non-blank TS/TSX, excl. tests, fixtures, Story files, the TLD list) ³ | 2,516 lines | 3,280 lines | 23% fewer |
-| Stylesheet ³ | 871 lines | 710 lines | 23% more |
+| Application code (non-blank TS/TSX, excl. tests, fixtures, Story files, the TLD list) ³ | 2,664 lines | 3,280 lines | 19% fewer |
+| Stylesheet ³ | 933 lines | 710 lines | 31% more |
 
 Not apples to apples, as on the comparison page:
 
@@ -57,12 +57,12 @@ Google's Lighthouse 13.6.0 lab test of `/?q=sunbeam` on each live site, run from
 
 | | Solid 2.0 mobile | Foldkit mobile | Solid 2.0 desktop | Foldkit desktop |
 |---|--:|--:|--:|--:|
-| Performance score (higher is better) | 100 (99–100) | 95 (93–98) | 100 | 74 (64–74) |
+| Performance score (higher is better) | 100 | 95 (93–98) | 100 | 74 (64–74) |
 | First Contentful Paint | 0.9 s | 0.8 s | 0.2 s | 0.2 s |
 | Largest Contentful Paint | 0.9 s | 0.8 s | 0.2 s | 0.2 s |
-| Total Blocking Time | 40 ms (30–80) | 260 ms (100–310) | 30 ms (20–30) | 130 ms (130–300) |
-| Cumulative Layout Shift | 0.049 | 0 (0–0.082) | 0 (0–0.002) | 0.771 |
-| Speed Index | 0.9 s | 1.6 s (1.5–1.6) | 0.2 s (0.2–0.3) | 0.7 s (0.7–0.8) |
+| Total Blocking Time | 50 ms (20–50) | 260 ms (100–310) | 10 ms (10–20) | 130 ms (130–300) |
+| Cumulative Layout Shift | 0 | 0 (0–0.082) | 0 | 0.771 |
+| Speed Index | 0.9 s (0.9–2.4) | 1.6 s (1.5–1.6) | 0.3 s (0.2–0.3) | 0.7 s (0.7–0.8) |
 
 Caveats:
 
@@ -70,9 +70,22 @@ Caveats:
 - **Simulated.** Mobile emulates a Moto G Power on slow 4G with a slowed CPU; desktop uses lighter throttling. Lighthouse models throttled timings from an unthrottled load, from Google's servers rather than the machine used for the table above.
 - **Coarse and noisy.** Times are shown rounded to 0.1 s, so paint differences under about 100 ms do not register, and scores move several points between identical runs.
 - **Foldkit's desktop layout shift (0.771)** is its results section moving when the browser renders fetched results into the server-sent shell; it is most of its desktop score gap (layout shift is 25% of the score).
-- **Solid's mobile layout shift (0.049)** comes from the result list: the server cannot know the screen width, so it renders the desktop three-column grid, and on a phone hydration re-lays it as one column, moving rows below the fold.
-- **Total Blocking Time** follows JavaScript size; Foldkit ships about three times as much, including its DevTools overlay.
+- **Solid's runs were taken after a fix, Foldkit's earlier the same day** (its site did not change). Solid's first runs showed a 0.049 mobile layout shift: the server rendered the result list in the desktop grid, and hydration re-laid it on phones. Rows are now placed by CSS container queries from their index, and the shift is 0.
+- **Total Blocking Time** follows JavaScript size; Foldkit ships about 2.7 times as much, including its DevTools overlay.
 - Each tested URL carried an extra `run=N` parameter so PSI would not reuse a cached report; both apps ignore it. Report ids are in `src/data/comparison.ts`.
+
+## Without JavaScript
+
+With JavaScript turned off, the app still works end to end. Foldkit's version shows its page shell without prices.
+
+- **Search** is a plain form: Enter loads `/?q=…`, and the server renders the results.
+- **Prices are in the HTML.** The router's app-level preload fetches the Top Results plus every price range the list's server window shows (`rangesFor` in `src/data/domain.ts`), so no row waits on streamed content, which needs a script to land.
+- **Filters and sort** have a small GET form (`tld`, `available`, `sort`), and **paging** has Previous and Next links (`from=33`, `from=66`, …). The server already reads those params, and the list's server window starts at `from`.
+- **The cart** buttons are forms posting to the `changeCart` server function via `serverFunctionActionUrl(changeCart, op, name)`. Without JavaScript the server-function runtime redirects back and the next render reads the cookie. With JavaScript, a submit listener on the form itself runs the optimistic cart and default-prevents the event, so the post never happens and the router's form-action code is never loaded.
+- The extra controls are always rendered, so server and client markup match for hydration, and CSS `@media (scripting: none)` shows them only when scripts are off.
+- `e2e/nojs.spec.ts` runs these flows with JavaScript disabled.
+
+The cost, measured against the previous build at maximum compression: 1.2 KB more JavaScript and 0.4 KB more HTML (brotli), mostly the per-row cart forms. As served by Cloudflare, whose on-the-fly brotli compresses this build less tightly, the JavaScript total grew 3.6 KB. The panel that lists cart contents still needs JavaScript; without it, the header shows the count and each row shows whether it is in the cart.
 
 ## How a request flows
 

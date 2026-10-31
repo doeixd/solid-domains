@@ -93,7 +93,7 @@ export const sizeMetrics: Metric[] = [
     'HTML',
     'Document for ?q=sunbeam, brotli',
     'htmlBytes',
-    'Not the same content: Solid’s includes the priced rows and their data for hydration.',
+    'Not the same content: Solid’s includes the priced rows, their data for hydration, and the forms that make filters and the cart work without JavaScript.',
   ),
   size(
     'CSS',
@@ -117,7 +117,7 @@ export const codeMetrics: Metric[] = [
     label: 'Application code',
     detail: 'Non-blank TS/TSX lines, excluding tests',
     unit: 'lines',
-    solid: 2516,
+    solid: 2664,
     foldkit: 3280,
     note: `Solid’s includes its request Inspector (${INSPECTOR_TS_LINES} lines); Foldkit’s DevTools is a library, not counted (about ${DEVTOOLS_LINES.toLocaleString('en-US')} lines of published JavaScript).`,
   },
@@ -125,7 +125,7 @@ export const codeMetrics: Metric[] = [
     label: 'Stylesheet',
     detail: 'Non-blank CSS lines (shared Tailwind base)',
     unit: 'lines',
-    solid: 871,
+    solid: 933,
     foldkit: 710,
     note: `Solid’s includes the Inspector’s ${INSPECTOR_CSS_LINES} lines.`,
   },
@@ -144,8 +144,9 @@ export const caveats = [
 
 /**
  * PageSpeed Insights (Lighthouse 13.6.0) lab runs of /?q=sunbeam, recorded
- * 2026-10-31 from pagespeed.web.dev: three runs per site and form factor,
- * alternating sites. Times in ms (PSI shows them rounded to 0.1 s), CLS
+ * 2026-10-31 from pagespeed.web.dev: three runs per site and form factor.
+ * Solid's were re-run after its list layout fix; Foldkit's site did not
+ * change, so its runs from earlier that day stand. Times in ms (PSI shows them rounded to 0.1 s), CLS
  * unitless, score 0–100. Each run's report id is kept so the numbers can be
  * checked against the source.
  */
@@ -157,9 +158,9 @@ export const pageSpeed: { measuredAt: string; lighthouse: string; mobile: PsiFor
   lighthouse: '13.6.0',
   mobile: {
     solid: [
-      { id: 'ridiqxlrz3', score: 100, fcp: 900, lcp: 900, tbt: 30, cls: 0.049, si: 900 },
-      { id: 'f7691pum01', score: 100, fcp: 900, lcp: 900, tbt: 40, cls: 0.049, si: 900 },
-      { id: '97d9v7s4vn', score: 99, fcp: 900, lcp: 900, tbt: 80, cls: 0.049, si: 900 },
+      { id: 'p6cvl3o5wq', score: 100, fcp: 900, lcp: 900, tbt: 50, cls: 0, si: 2400 },
+      { id: 'qddmlxbp24', score: 100, fcp: 900, lcp: 900, tbt: 20, cls: 0, si: 900 },
+      { id: 'xqaxqffvur', score: 100, fcp: 900, lcp: 900, tbt: 50, cls: 0, si: 900 },
     ],
     foldkit: [
       { id: 'a4uxcclum3', score: 98, fcp: 800, lcp: 800, tbt: 100, cls: 0.082, si: 1600 },
@@ -169,9 +170,9 @@ export const pageSpeed: { measuredAt: string; lighthouse: string; mobile: PsiFor
   },
   desktop: {
     solid: [
-      { id: '5htpw0tfmf', score: 100, fcp: 200, lcp: 200, tbt: 20, cls: 0.002, si: 300 },
-      { id: 'ud2n1t97km', score: 100, fcp: 200, lcp: 200, tbt: 30, cls: 0, si: 200 },
-      { id: 'd2kwdlacao', score: 100, fcp: 200, lcp: 200, tbt: 30, cls: 0, si: 200 },
+      { id: 'gycex7zvb4', score: 100, fcp: 200, lcp: 200, tbt: 10, cls: 0, si: 200 },
+      { id: '2yms0ij63y', score: 100, fcp: 200, lcp: 200, tbt: 20, cls: 0, si: 300 },
+      { id: 'tbjr78qs4d', score: 100, fcp: 200, lcp: 200, tbt: 10, cls: 0, si: 300 },
     ],
     foldkit: [
       { id: '7s2hi48abh', score: 74, fcp: 200, lcp: 200, tbt: 130, cls: 0.771, si: 700 },
@@ -190,8 +191,8 @@ export const pageSpeedCaveats = [
   'Simulated, not observed. Mobile emulates a Moto G Power on slow 4G with a slowed CPU; desktop uses lighter throttling. Lighthouse estimates throttled timings from an unthrottled load, so they are modeled values, and they run from Google’s servers, not the machine the other tables were measured on.',
   'Coarse and noisy. PSI shows times rounded to 0.1 s, so paint differences under about 100 ms do not register, and the score moves several points between identical runs (Foldkit mobile ranged 93–98). Medians of three runs per site and form factor are shown, with the range.',
   'Foldkit’s desktop layout shift (0.771) is its results section moving when the browser renders the fetched results into the server-sent shell; it is most of the gap in its desktop score. Layout shift is 25% of the score.',
-  'Solid’s mobile layout shift (0.049) is the result list: the server cannot know the screen width, so it renders the desktop three-column grid, and on a phone hydration re-lays it as one column, moving the rows below the fold.',
-  'Total Blocking Time is main-thread work from JavaScript, so it follows bundle size: Foldkit ships about three times the JavaScript, including its DevTools overlay.',
+  'Solid’s runs were taken after a fix and Foldkit’s earlier the same day. Solid’s first runs showed a 0.049 mobile layout shift: the server rendered the result list in the desktop grid and hydration re-laid it on phones. Rows are now placed by CSS container queries, and the shift is 0.',
+  'Total Blocking Time is main-thread work from JavaScript, so it follows bundle size: Foldkit ships about 2.7 times the JavaScript, including its DevTools overlay.',
   'Each tested URL carries an extra run=N query parameter so PSI cannot reuse a cached report; both apps ignore it.',
 ]
 
@@ -241,6 +242,12 @@ export const concepts: ConceptRow[] = [
       'The server HTML paints first and hydration starts on the next frame; HydrationScript captures clicks and typing in between and replays them.',
   },
   {
+    concept: 'Without JavaScript',
+    foldkit: 'The server sends the page shell; prices, results, filters, and the cart need the bundle. With JavaScript off, a search shows no prices.',
+    solid:
+      'Search, filters, paging, and the cart work: rows are priced in the HTML, filters are a GET form with Previous and Next links, and cart buttons post to a server function that redirects back. CSS `@media (scripting: none)` shows these controls only when scripts are off.',
+  },
+  {
     concept: 'Virtual list',
     foldkit: '@foldkit/ui VirtualList with measured, dynamic row heights.',
     solid: 'Hand-rolled window virtualization with fixed row heights per breakpoint (long names are truncated).',
@@ -253,7 +260,8 @@ export const concepts: ConceptRow[] = [
   {
     concept: 'Cart',
     foldkit: 'In the Model; instant, and in-memory only.',
-    solid: 'Optimistic action saved through a server function into a cookie, so it survives reloads.',
+    solid:
+      'Optimistic action saved through a server function into a cookie, so it survives reloads. Each button is also a form posting to a server function, so the cart works without JavaScript.',
   },
   {
     concept: 'Tooling',
@@ -279,5 +287,6 @@ export const strengths = {
     'Prices arrive in the first HTML response instead of after the bundle and an RPC.',
     'Async reads are plain memos over router queries: no AsyncData union, no loading flags.',
     'The cart is a server-checked, optimistic mutation that survives reloads.',
+    'It works without JavaScript: search, filters, paging, and the cart are server HTML, GET forms, and form posts.',
   ],
 }

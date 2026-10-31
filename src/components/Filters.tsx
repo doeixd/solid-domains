@@ -1,4 +1,4 @@
-import { Loading, Show, lazy, useContext } from 'solid-js'
+import { For, Loading, Show, lazy, useContext } from 'solid-js'
 
 import {
   type AvailabilityFilter,
@@ -10,6 +10,7 @@ import {
   domainTlds,
   sortOrderLabels,
   sortOrders,
+  sortSlug,
   tldFilterLabel,
   tldFilters,
 } from '../data/domain'
@@ -77,6 +78,35 @@ export function Filters() {
       >
         <FilterIcon />
       </button>
+      {/* The same filters as a plain GET form, for browsers without
+          JavaScript: the server reads these params. Always rendered so
+          hydration matches; CSS shows it only under (scripting: none). */}
+      <form class="nojs-only nojs-filters" method="get" action="/">
+        <input type="hidden" name="q" value={search.query()} />
+        <label>
+          Extension
+          <input name="tld" value={shown.tld() === 'All' ? '' : shown.tld()} placeholder="All" size={6} />
+        </label>
+        <label>
+          <input type="checkbox" name="available" value="1" checked={shown.availability() === 'Available'} />
+          Available only
+        </label>
+        <label>
+          Sort
+          <select name="sort">
+            <For each={sortOrders}>
+              {order => (
+                <option value={sortSlug(order)} selected={shown.sort() === order}>
+                  {sortOrderLabels[order]}
+                </option>
+              )}
+            </For>
+          </select>
+        </label>
+        <button type="submit" class="button">
+          Apply
+        </button>
+      </form>
     </div>
   )
 }

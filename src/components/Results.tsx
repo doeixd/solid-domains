@@ -9,17 +9,22 @@ import {
   createSignal,
   isPending,
   onSettled,
+  untrack,
   useContext,
 } from 'solid-js'
+import { useLocation } from '@solidjs/router'
 
 import {
   type DomainName,
+  SSR_WINDOW_SIZE,
   TOP_RESULT_COUNT,
   domainCandidates,
   domainTlds,
   filterAndSortDomains,
   isFullCatalogRequired,
-  sortNames,
+  nameListing,
+  searchHref,
+  startFromParams,
 } from '../data/domain'
 import { DomainsContext } from '../lib/domainsClient'
 import { observeWidth } from '../lib/refs'
@@ -32,7 +37,15 @@ const OVERSCAN_ROWS = 4
 const PREVIEW_ROW_COUNT = 36
 const DESKTOP_ROW_HEIGHT_PX = 57
 const MOBILE_ROW_HEIGHT_PX = 61
-const NOMINAL_VIEWPORT_PX = 600
+// The nominal viewport the server renders the list for: SSR_WINDOW_SIZE
+// results in three columns.
+const NOMINAL_VIEWPORT_PX = (SSR_WINDOW_SIZE / 3) * DESKTOP_ROW_HEIGHT_PX
+
+/** The first result a server render shows (`from`, for paging without JavaScript). */
+const useServerStart = () => {
+  const location = useLocation()
+  return untrack(() => startFromParams(new URLSearchParams(location.search)))
+}
 
 export const SearchError = (props: { message: string; onRetry?: () => void }) => (
   <div class="search-error" role="alert">
@@ -150,10 +163,7 @@ function AllResults(props: { label: string }) {
     const label = props.label
     const withLabel = (names: DomainName[]) => names.map(name => ({ ...name, label }))
 
-    if (!isFullCatalogRequired(filters.availability, filters.sort)) {
-      const names = domainCandidates(label).filter(c => filters.tld === 'All' || c.tld === filters.tld)
-      return withLabel(sortNames(names, filters.sort))
-    }
+    if (!isFullCatalogRequired(filters.availability, filters.sort)) return withLabel(nameListing(label, filters))
     const all = client.lookupAll(label)
     return all instanceof Promise
       ? all.then(domains => withLabel(filterAndSortDomains(domains, filters)))
@@ -176,6 +186,7 @@ function AllResults(props: { label: string }) {
         <div class={['all-results', { 'is-refreshing': isRefreshing() }]} aria-busy={isRefreshing() ? 'true' : 'false'}>
           <VirtualList items={resolved()} />
         </div>
+        <NoScriptPager total={resolved().length} />
       </Show>
       <p class="result-count" role="status" aria-atomic="true">
         {isRefreshing()
@@ -191,6 +202,30 @@ function AllResults(props: { label: string }) {
 }
 
 /**
+ * Previous and next links for paging the list without JavaScript. Always
+ * rendered, so server and client markup match for hydration; CSS shows it
+ * only under `@media (scripting: none)`.
+ */
+function NoScriptPager(props: { total: number }) {
+  const search = useContext(SearchContext)
+  const start = useServerStart()
+  const href = (from: number) => searchHref(search.query(), { ...search.filters }, from)
+  return (
+    <nav class="nojs-only nojs-pager" aria-label="Result pages">
+      <span>
+        {Math.min(start + 1, props.total)}–{Math.min(start + SSR_WINDOW_SIZE, props.total)} of {props.total}
+      </span>
+      <Show when={start > 0}>
+        <a href={href(Math.max(0, start - SSR_WINDOW_SIZE))}>Previous</a>
+      </Show>
+      <Show when={start + SSR_WINDOW_SIZE < props.total}>
+        <a href={href(start + SSR_WINDOW_SIZE)}>Next</a>
+      </Show>
+    </nav>
+  )
+}
+
+/**
  * Window-scrolled virtualization. Only rows near the viewport are mounted, and
  * since each row's lookup runs when the row mounts, scrolling *is* the
  * progressive-loading planner: pages are requested as they come into view,
@@ -199,10 +234,13 @@ function AllResults(props: { label: string }) {
 function VirtualList(props: { items: Candidate[] }) {
   const ui = useContext(UiContext)
   const [width, setWidth] = createSignal(0)
-  const [windowTop, setWindowTop] = createSignal(0)
+  // Starts at `from` (paging without JavaScript); the first measurement moves
+  // it to the real scroll position.
+  const [windowTop, setWindowTop] = createSignal((useServerStart() / 3) * DESKTOP_ROW_HEIGHT_PX)
   // Server and hydrating client must render the same window, so both start
   // from a nominal viewport; onSettled measures the real one. The list begins
-  // well down the page, so 600px covers every row visible at first paint.
+  // well down the page, so the nominal height covers every row visible at
+  // first paint.
   const [windowHeight, setWindowHeight] = createSignal(NOMINAL_VIEWPORT_PX)
   let container: HTMLUListElement | undefined
 
@@ -275,7 +313,11 @@ function VirtualList(props: { items: Candidate[] }) {
     <ul
       ref={[element => (container = element), observeWidth(setWidth)]}
       class={['results-viewport', { 'is-single-result': props.items.length === 1 }]}
-      style={{ height: `${rowCount() * rowHeight()}px`, '--row-height': `${rowHeight()}px` }}
+      // Rows are positioned by CSS from their index, using container queries
+      // at the same breakpoints as columns(). The server cannot know the
+      // screen width, so positions computed here would be the desktop grid's,
+      // and a phone would see rows jump when hydration re-laid them.
+      style={{ '--n': String(props.items.length) }}
       tabindex="0"
       aria-label="All domain results"
       aria-description={`${props.items.length} domains. Use arrow keys, Page Up, Page Down, Home, and End to scroll the page.`}
@@ -284,14 +326,7 @@ function VirtualList(props: { items: Candidate[] }) {
     >
       <For each={visible()} keyed={entry => entry.candidate.name}>
         {entry => (
-          <li
-            class="virtual-cell"
-            style={{
-              transform: `translateY(${Math.floor(entry().index / columns()) * rowHeight()}px)`,
-              left: `${((entry().index % columns()) * 100) / columns()}%`,
-              width: `${100 / columns()}%`,
-            }}
-          >
+          <li class="virtual-cell" style={{ '--i': String(entry().index) }}>
             <DomainRow candidate={entry().candidate} />
           </li>
         )}
