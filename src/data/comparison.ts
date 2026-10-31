@@ -51,8 +51,8 @@ export const sizeMetrics: Metric[] = [
  * fixtures, the shared 556-entry TLD list, and (here) this comparison page.
  */
 export const codeMetrics: Metric[] = [
-  metric('Application code', 'Non-blank TS/TSX lines, excluding tests', 'lines', [2415, 3280]),
-  metric('Stylesheet', 'Non-blank lines (shared Tailwind base)', 'lines', [867, 710]),
+  metric('Application code', 'Non-blank TS/TSX lines, excluding tests', 'lines', [2463, 3280]),
+  metric('Stylesheet', 'Non-blank lines (shared Tailwind base)', 'lines', [793, 710]),
 ]
 
 export const testFacts = {

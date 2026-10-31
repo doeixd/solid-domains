@@ -27,27 +27,27 @@ Both versions as deployed on Cloudflare Workers, median of 15 cold loads of `/?q
 | | Solid 2.0 (this repo) | Foldkit original | Solid vs Foldkit |
 |---|--:|--:|---|
 | **Speed** | | | |
-| Time to first byte | 62 ms | 57 ms | 9% slower |
-| First paint | 172 ms | 168 ms | about the same |
-| Top Results priced | 172 ms | 605 ms | 3.5× faster |
-| First page priced (60 of 556) | 199 ms | 656 ms | 3.3× faster |
-| New search (keystroke → prices, incl. 150 ms debounce) | 213 ms | 252 ms | 15% faster |
+| Time to first byte | 52 ms | 48 ms | 8% slower (4 ms) |
+| First paint | 164 ms | 156 ms | 5% slower |
+| Top Results priced | 164 ms | 595 ms | 3.6× faster |
+| First page priced (60 of 556) | 175 ms | 650 ms | 3.7× faster |
+| New search (keystroke → prices, incl. 150 ms debounce) | 212 ms | 247 ms | 14% faster |
 | **Size** (as served, brotli) | | | |
-| JavaScript | 75.2 KB | 214.9 KB | 2.9× smaller |
-| HTML | 6.0 KB | 4.5 KB | 33% larger |
-| CSS | 9.1 KB | 8.0 KB | 14% larger |
+| JavaScript | 75.5 KB | 214.9 KB | 2.8× smaller |
+| HTML | 5.6 KB | 4.5 KB | 24% larger |
+| CSS | 8.6 KB | 8.0 KB | 8% larger |
 | Requests at load | 7 | 9 | 2 fewer |
 | **Code** | | | |
-| Application code (non-blank TS/TSX, excl. tests and the TLD list) | 2,415 lines | 3,280 lines | 26% fewer |
-| Stylesheet | 867 lines | 710 lines | 22% more |
+| Application code (non-blank TS/TSX, excl. tests and the TLD list) | 2,463 lines | 3,280 lines | 25% fewer |
+| Stylesheet | 793 lines | 710 lines | 12% more |
 | Test declarations | 44 | 112 | Foldkit tests far more |
 
-Prices arrive with Solid's first paint because the server preloads them into the first HTML; Foldkit sends a lighter shell and fetches prices over RPC after its bundle loads. Foldkit ships its DevTools in production by design, which accounts for part of its JavaScript. Neither backend adds artificial latency.
+Prices arrive with Solid's first paint because the server preloads them into the first HTML; Foldkit sends a lighter shell and fetches prices over RPC after its bundle loads. That shell is also why Foldkit's first byte and HTML are a little smaller: Solid renders about 37 priced rows on the server (about 2 ms of render). Most of the CSS is the same as Foldkit's; the Inspector's styles load with the Inspector. Foldkit ships its DevTools in production by design, which accounts for part of its JavaScript. Neither backend adds artificial latency.
 
 ## How a request flows
 
 1. **Shareable URLs.** The query and filters live in the URL (`/?q=acme&available=1&sort=price`), so the server renders a shared link already sorted and filtered.
-2. **Streaming SSR, paint first.** Start mode (`start: {…}, ssr: true`) with authored entries (`src/entry-server.tsx`, `src/entry-client.tsx`) renders `Document` + `App` with `renderToStream`. The search route's `preload` function (`src/router.tsx`) starts the first queries in parallel with rendering, and `deferStream` holds the flush until they answer, so prices land in the first HTML with no skeleton, template, or swap script. The cart reaches the client through the hydration channel, because reading `document.cookie` during hydration cost about 24 ms. The client paints that HTML first and hydrates on the next frame. Its bundle is small enough to arrive before first paint, and hydrating then would hold the paint; `HydrationScript` replays any input in between. Icons are an SVG sprite, and the server renders only the rows visible at first paint.
+2. **Streaming SSR, paint first.** Start mode (`start: {…}, ssr: true`) with authored entries (`src/entry-server.tsx`, `src/entry-client.tsx`) renders `Document` + `App` with `renderToStream`. The router's app-level `preload` (a loader, in `src/router.tsx`) fetches the ranges a search page renders, and the root layout holds the shell for it (`deferStream`). Rows then read those ranges synchronously, so no row suspends on the server, and prices land in the first HTML with no skeleton, template, or swap script. The browser adopts the loader's result and seeds the `query()` cache with it (`query.set`). The cart reaches the client through the hydration channel, because reading `document.cookie` during hydration cost about 24 ms. The client paints that HTML first and hydrates on the next frame. Its bundle is small enough to arrive before first paint, and hydrating then would hold the paint; `HydrationScript` replays any input in between. Icons are an SVG sprite, and the server renders only the rows visible at first paint.
 3. **Backend.** `src/server/domains.ts` holds `"use server"` functions. During SSR `searchDomains` runs in-process; from the browser it is an RPC to `/_server`, aborted when the row that needed it unmounts. `src/server/middleware.ts` adds a REST API: `GET /api/health` and `GET /api/search?label=acme&offset=0&limit=60`.
 4. **Data and routing.** `@solidjs/router` supplies the routes (`/`, `/compare`, `*404`), the search params, and the data layer: prices come from `fetchRange = query(fn, "domains")`, keyed by label and range and read with plain `createMemo`. `query()` dedupes requests, caches per request on the server, and hands results to the hydrating client, which adopts them instead of refetching. Because `query()` never cancels a request, lookups wait until the search has been stable for 150 ms, so typing a word sends requests for the final query only.
 5. **Cart.** The cookie stores names only. The server render and the hydrating client price it from the same catalog, so the badge is correct before JavaScript runs. Changes go through the `saveCart` server function (which re-prices and sets the cookie) inside an optimistic `action`.
@@ -97,6 +97,7 @@ Open the **⚡ Solid 2.0** button in the header to see the request log (SSR-adop
 
 - The cart panel, the Inspector panel, and the mobile filter sheets load on first open (`lazy()` under `<Loading>`), which cut the app's entry chunk from about 14 to 8 KB gzip. Shared app modules are grouped into one `app` chunk (`advancedChunks` in `vite.config.ts`), so the search page preloads 3 files instead of 7.
 - Adopting `@solidjs/router` added about 15 KB gzip; see the data-layer table below.
+- The Inspector panel's styles load with the panel (`src/components/inspector.css`), as the comparison page's do.
 - Server components (`serverFunctions: { components: true }`) were tried for `/compare` and reverted. The frames-capable transport they need applies to every server-function call, which added about 14 KB gzip to the search page to save a code-split 5 KB on a static page. Slotted server-component rows were ruled out for the same reason.
 
 ## Data layer: `query()` versus the earlier hand-written cache
@@ -106,13 +107,13 @@ The app first used a hand-written keyed cache, then moved to `@solidjs/router`'s
 | | Hand-written cache | Router + `query()` |
 |---|--:|--:|
 | Eager JavaScript (gzip) | 59.2 KB | 74.6 KB |
-| Server render per request | ~1.3 ms | 4.0 ms |
+| Server render per request | ~1.3 ms | 4.0 ms, then 1.9 ms with the loader (below) |
 | Hydration (desktop, interleaved A/B) | 27 ms | 37 ms |
 | Requests while typing "moonbeam" | 2 | 2 (debounced lookups) |
 | Skeletons on fully cached transitions | 0 | 0, or 4 when returning to a cached query |
 | Cancels requests nobody needs | yes | no |
 
-`query()` hits are promises; Solid 2 settles them within the transition, so cached rows don't flash. The extra server time comes from those promise hits suspending, and the router adds the JavaScript.
+`query()` hits are promises; Solid 2 settles them within the transition, so cached rows don't flash. On the server, though, every promise suspends its row's `<Loading>` boundary, and that bookkeeping (fragments spliced back into the HTML) took the render from 1.3 to 4.0 ms. The fix is the router's app-level `preload` as a loader: the ranges are fetched before render, rows read them synchronously, and the render is back to 1.9 ms. The router adds the JavaScript.
 
 ## Differences from the original
 

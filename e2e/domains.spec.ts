@@ -22,8 +22,6 @@ test.describe('server rendering', () => {
     // The Top Results plus every list row in the first viewport arrive priced.
     expect(html.match(/class="price"/g)?.length).toBeGreaterThanOrEqual(30)
     expect(html).not.toContain('skeleton-price')
-    // The router query's key, handed to the client for adoption.
-    expect(html).toContain('domains[\\"sunbeam\\",0,4]')
   })
 
   test('renders shared filter links sorted and filtered', async ({ page }) => {
@@ -88,6 +86,8 @@ test.describe('hydration', () => {
 
     await page.locator('.inspector-toggle').click()
     await expect(page.locator('.request-log .request-empty')).toBeVisible()
+    // Its styles arrive with the code-split panel: styled, not raw markup.
+    await expect(page.locator('.inspector-panel')).toHaveCSS('position', 'absolute')
   })
 })
 

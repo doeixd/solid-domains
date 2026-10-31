@@ -4,6 +4,7 @@ import { networkSettings } from '../data/network'
 import { DomainsContext } from '../lib/domainsClient'
 import { UiContext } from '../lib/ui'
 import { CloseIcon } from './Icons'
+import './inspector.css'
 
 const FEATURES: ReadonlyArray<[string, string]> = [
   ['query() + createMemo', 'Prices come from a router query keyed by label and range, read with a plain memo. No resource API, no loading flags.'],

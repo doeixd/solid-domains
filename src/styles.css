@@ -981,14 +981,6 @@
     @apply animate-skeleton;
   }
 
-  .dialog-backdrop.is-light {
-    @apply bg-black/30;
-  }
-
-  .side-panel {
-    @apply absolute inset-y-0 right-0 max-h-dvh w-[min(460px,100vw)] overflow-auto overscroll-contain border-gray-700 bg-gray-950 p-6 min-[461px]:border-l;
-  }
-
   .inspector-toggle .icon {
     @apply size-3.5 text-[#7aa2ff];
   }
@@ -1011,93 +1003,4 @@
     }
   }
 
-  .inspector-stats {
-    @apply mb-6 grid grid-cols-3 gap-2;
-  }
-
-  .inspector-stats > div {
-    @apply flex flex-col gap-1 rounded-md border border-[#222] p-3;
-  }
-
-  .inspector-stats strong {
-    @apply text-[20px] font-semibold tabular-nums;
-  }
-
-  .inspector-stats span {
-    @apply text-[11px] text-gray-400;
-  }
-
-  .inspector-heading {
-    @apply mt-7 mb-3 text-[13px] font-medium text-gray-300;
-  }
-
-  .inspector-control {
-    @apply mb-3 flex flex-col gap-1.5 text-[13px];
-  }
-
-  .inspector-control > span {
-    @apply flex justify-between;
-  }
-
-  .inspector-control input {
-    @apply w-full accent-gray-50;
-  }
-
-  .request-log {
-    @apply m-0 max-h-64 list-none overflow-auto rounded-md border border-[#222] p-0 font-mono text-[11px];
-  }
-
-  .request-log li {
-    @apply grid grid-cols-[1fr_auto_5.5rem_4rem] items-center gap-3 border-b border-[#1c1c1c] px-3 py-1.5;
-  }
-
-  .request-log li:last-child {
-    @apply border-b-0;
-  }
-
-  .request-log .request-label {
-    @apply truncate;
-  }
-
-  .request-log .request-range,
-  .request-log .request-time {
-    @apply text-right text-gray-400 tabular-nums;
-  }
-
-  .request-log .request-outcome {
-    @apply text-gray-300;
-  }
-
-  .request-log [data-outcome='ok'] .request-outcome {
-    @apply text-added;
-  }
-
-  .request-log [data-outcome='error'] .request-outcome {
-    @apply text-[#ff6166];
-  }
-
-  .request-log [data-outcome='aborted'] .request-outcome {
-    @apply text-gray-500 line-through;
-  }
-
-  .request-log [data-outcome='fetching'] .request-outcome,
-  .request-log [data-outcome='debouncing'] .request-outcome {
-    @apply animate-skeleton text-[#7aa2ff];
-  }
-
-  .request-log .request-empty {
-    @apply block text-gray-400;
-  }
-
-  .feature-list {
-    @apply m-0 flex flex-col gap-3 text-[13px] leading-5;
-  }
-
-  .feature-list dt code {
-    @apply rounded bg-gray-900 px-1.5 py-0.5 text-[12px] text-gray-50;
-  }
-
-  .feature-list dd {
-    @apply mt-1 ml-0 text-gray-400;
-  }
 }

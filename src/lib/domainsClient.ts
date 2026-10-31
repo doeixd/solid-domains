@@ -1,6 +1,8 @@
 import { query, revalidate } from '@solidjs/router'
 import { isServer } from '@solidjs/web'
-import { type Accessor, createContext, createEffect, createSignal } from 'solid-js'
+import { type Accessor, createContext, createEffect, createSignal, untrack } from 'solid-js'
+
+import type { PreloadedSearch } from '../router'
 
 import {
   type Domain,
@@ -78,8 +80,11 @@ export const fetchRange = query(async (label: string, offset: number, limit: num
  *   row, so rows need no error boundary; `retry()` revalidates those keys.
  * - **Bookkeeping** for "120 of 556 domains checked" and the Inspector.
  */
-export const createDomainsClient = (currentLabel: Accessor<string | undefined>) => {
-  const [debouncedLabel, setDebouncedLabel] = createSignal(currentLabel())
+export const createDomainsClient = (
+  currentLabel: Accessor<string | undefined>,
+  preload: Accessor<PreloadedSearch | undefined> = () => undefined,
+) => {
+  const [debouncedLabel, setDebouncedLabel] = createSignal(untrack(currentLabel))
   createEffect(currentLabel, label => {
     const id = setTimeout(() => setDebouncedLabel(label), SEARCH_DEBOUNCE_MS)
     return () => clearTimeout(id)
@@ -147,11 +152,35 @@ export const createDomainsClient = (currentLabel: Accessor<string | undefined>) 
 
   const hasFullCatalog = (label: string) => loaded.get(label)?.has(keyFor(label, FULL_CATALOG)) ?? false
 
+  // The app preload's ranges, read synchronously: rows render from them with
+  // no suspension. In the browser they also seed the query cache (in an
+  // effect's apply phase, where writes belong), so later reads through
+  // query() are cache hits, not refetches.
+  const [isPreloadDropped, setPreloadDropped] = createSignal(false)
+  // Created on both sides: an owner made only in the browser would shift
+  // every hydration id after it. (Effects never apply on the server.)
+  createEffect(preload, data => {
+    for (const entry of data?.ranges ?? []) {
+      query.set(keyFor(data!.label, entry.range), entry.domains)
+      recordLoaded(data!.label, entry.range, entry.domains)
+    }
+  })
+  const preloadedRange = (label: string, range: DomainRange): Domain[] | undefined => {
+    if (isPreloadDropped()) return undefined
+    const data = preload()
+    if (!data || data.label !== label) return undefined
+    const key = keyFor(label, range)
+    return data.ranges.find(entry => keyFor(data.label, entry.range) === key)?.domains
+  }
+
   /** One domain's result. Pending while the label settles or its range loads. */
-  const lookup = (label: string, tld: string): Promise<LookupResult> => {
+  const lookup = (label: string, tld: string): LookupResult | Promise<LookupResult> => {
+    const failed: FailedLookup = { _tag: 'Failed', name: `${label}.${tld}`, tld }
+    const preloaded = preloadedRange(label, FULL_CATALOG) ?? preloadedRange(label, rangeForTld(tld))
+    if (preloaded) return preloaded.find(domain => domain.tld === tld) ?? failed
+
     if (!isServer && label !== debouncedLabel()) return never()
     const range = hasFullCatalog(label) ? FULL_CATALOG : rangeForTld(tld)
-    const failed: FailedLookup = { _tag: 'Failed', name: `${label}.${tld}`, tld }
     return fetchRange(label, range.offset, range.limit).then(
       domains => {
         recordLoaded(label, range, domains)
@@ -165,7 +194,9 @@ export const createDomainsClient = (currentLabel: Accessor<string | undefined>) 
   }
 
   /** Every candidate, for availability filtering and price sorting. */
-  const lookupAll = (label: string): Promise<Domain[]> => {
+  const lookupAll = (label: string): Domain[] | Promise<Domain[]> => {
+    const preloaded = preloadedRange(label, FULL_CATALOG)
+    if (preloaded) return preloaded
     if (!isServer && label !== debouncedLabel()) return never()
     return fetchRange(label, FULL_CATALOG.offset, FULL_CATALOG.limit).then(
       domains => {
@@ -205,6 +236,7 @@ export const createDomainsClient = (currentLabel: Accessor<string | undefined>) 
     },
 
     clear: () => {
+      setPreloadDropped(true)
       query.clear()
       loaded.clear()
       failures.clear()
