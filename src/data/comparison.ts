@@ -10,7 +10,7 @@ type Spread = [number | null, number | null]
 export type Metric = {
   label: string
   detail: string
-  unit: 'ms' | 'KB' | 'lines' | 'tests'
+  unit: 'ms' | 'KB' | 'lines'
   solid: number
   foldkit: number
   /** Interquartile range (25th–75th percentile) across runs, when measured. */
@@ -48,6 +48,16 @@ const size = (label: string, detail: string, key: SiteKey, note?: string): Metri
   note,
 })
 
+/**
+ * Foldkit's DevTools at the version domains.foldkit.dev deploys
+ * (0.169.0-canary.90746b32d2ca): the foldkit/devTools modules plus the
+ * @foldkit/devtools overlay, bundled on their own with shared libraries
+ * (effect, foldkit, @foldkit/ui) left out, minified, then brotli.
+ * Compressing them apart from the app bundle slightly overstates their share.
+ */
+const DEVTOOLS_LINES = 4204 // non-blank lines of the published JavaScript
+const DEVTOOLS_KB = 22.9
+
 /** Lower is better for every row. */
 export const speedMetrics: Metric[] = [
   timing(
@@ -77,7 +87,7 @@ export const sizeMetrics: Metric[] = [
     'JavaScript',
     'Every script the page loads, brotli',
     'jsBytes',
-    'Foldkit ships its DevTools overlay in production by design; that is part of its total.',
+    `Foldkit ships its DevTools overlay in production by design: about ${DEVTOOLS_KB} KB of its total (an estimate; it is in the same bundle as the app).`,
   ),
   size(
     'HTML',
@@ -109,7 +119,7 @@ export const codeMetrics: Metric[] = [
     unit: 'lines',
     solid: 2516,
     foldkit: 3280,
-    note: `Solid’s includes its request Inspector (${INSPECTOR_TS_LINES} lines); Foldkit’s DevTools is a separate package, not counted.`,
+    note: `Solid’s includes its request Inspector (${INSPECTOR_TS_LINES} lines); Foldkit’s DevTools is a library, not counted (about ${DEVTOOLS_LINES.toLocaleString('en-US')} lines of published JavaScript).`,
   },
   {
     label: 'Stylesheet',
@@ -119,25 +129,12 @@ export const codeMetrics: Metric[] = [
     foldkit: 710,
     note: `Solid’s includes the Inspector’s ${INSPECTOR_CSS_LINES} lines.`,
   },
-  {
-    label: 'Test declarations',
-    detail: 'test()/it() calls, same pattern for both',
-    unit: 'tests',
-    solid: 47,
-    foldkit: 112,
-    note: 'Counts declarations, not coverage; a parameterized test counts once on both sides.',
-  },
 ]
-
-export const testFacts = {
-  solid: '47 test declarations: 25 Vitest unit tests for pure logic + 22 Playwright tests against the production build',
-  foldkit: '112 test declarations: 57 Story and Scene tests of update logic + 55 Playwright tests, including a11y and Worker runs',
-}
 
 /** Where the two sides are not measured or built on equal terms. */
 export const caveats = [
   'Different work per page. Solid renders prices on the server; Foldkit renders a shell and fetches prices in the browser. First byte, HTML size, and “prices on screen” all reflect that choice, not just framework speed.',
-  'Foldkit ships its DevTools overlay in production by design, which is part of its JavaScript. Solid’s dev toolbar (@solidjs/start-devtools) is development-only by design and is not in production builds; this app’s own request Inspector is app code, counted in its lines and loaded on demand.',
+  `Foldkit ships its DevTools overlay in production by design: an estimated ${DEVTOOLS_KB} KB of its JavaScript, so without it Foldkit would load about ${Math.round(kb(benchmark.results.foldkit.jsBytes) - DEVTOOLS_KB)} KB. Solid’s dev toolbar (@solidjs/start-devtools) is development-only by design and is not in production builds; this app’s own request Inspector is app code, counted in its lines and loaded on demand.`,
   'Before hydration: Foldkit’s bootstrap script makes the input fully work before its bundle runs. Solid’s captures clicks and typing and replays them when it hydrates; nothing happens on screen until then.',
   'Hosting: Foldkit is served from a custom domain on a Cloudflare zone, Solid from workers.dev. Both are Cloudflare Workers, but zone settings (protocols, caching features) can differ.',
   'Sizes are what the server sends when asked for brotli. Chrome actually receives zstd from Cloudflare; the absolute numbers differ slightly, the comparison does not.',

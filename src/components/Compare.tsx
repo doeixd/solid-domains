@@ -12,7 +12,6 @@ import {
   sizeMetrics,
   speedMetrics,
   strengths,
-  testFacts,
 } from '../data/comparison'
 import { ArrowUpRightIcon } from './Icons'
 import './compare.css'
@@ -32,11 +31,6 @@ const difference = (metric: Metric) => {
   const { solid, foldkit, unit } = metric
   if (!solid || !foldkit) return '—'
   if (overlaps(metric.solidSpread, metric.foldkitSpread)) return 'within run-to-run variation'
-  if (unit === 'tests') {
-    if (solid === foldkit) return 'the same'
-    const ratio = (Math.max(solid, foldkit) / Math.min(solid, foldkit)).toFixed(1)
-    return `${ratio}× ${solid < foldkit ? 'fewer' : 'more'}`
-  }
   if (Math.abs(solid - foldkit) / Math.max(solid, foldkit) < 0.05) return 'about the same'
   const better = solid < foldkit
   const [less, more] = unit === 'ms' ? ['faster', 'slower'] : unit === 'lines' ? ['fewer', 'more'] : ['smaller', 'larger']
@@ -187,26 +181,6 @@ export default function Compare() {
           caption="Counted the same way for both: non-blank lines, excluding tests, fixtures, Story files, and the shared 556-entry TLD list. Solid’s count also excludes this comparison page, which Foldkit has no equivalent of."
           metrics={codeMetrics}
         />
-
-        <section class="compare-section" aria-labelledby="tests-heading">
-          <h2 id="tests-heading">Tests</h2>
-          <dl class="fact-list">
-            <div>
-              <dt>
-                <span class="swatch swatch-solid" aria-hidden="true" />
-                Solid 2.0
-              </dt>
-              <dd>{testFacts.solid}</dd>
-            </div>
-            <div>
-              <dt>
-                <span class="swatch swatch-foldkit" aria-hidden="true" />
-                Foldkit
-              </dt>
-              <dd>{testFacts.foldkit}</dd>
-            </div>
-          </dl>
-        </section>
 
         <section id="caveats" class="compare-section" aria-labelledby="caveats-heading">
           <h2 id="caveats-heading">What is not apples to apples</h2>

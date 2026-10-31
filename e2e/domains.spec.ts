@@ -38,7 +38,7 @@ test.describe('server rendering', () => {
     await expect(page).toHaveTitle('Solid 2.0 vs Foldkit | Domains')
     await expect(page.getByRole('heading', { name: 'Speed' })).toBeVisible()
     await expect(page.locator('.metric-table tbody tr').first()).toBeVisible()
-    await expect(page.getByRole('row', { name: /JavaScript/ })).toContainText('KB')
+    await expect(page.getByRole('row', { name: /^JavaScript/ })).toContainText('KB')
     await page.getByRole('link', { name: 'Try the search' }).click()
     await expect(page.getByRole('searchbox', { name: 'Search domains' })).toBeVisible()
   })

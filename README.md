@@ -40,13 +40,12 @@ Both versions as deployed, median and interquartile range of 15 cold loads of `/
 | **Code** (counted the same way for both) | | | |
 | Application code (non-blank TS/TSX, excl. tests, fixtures, Story files, the TLD list) ³ | 2,516 lines | 3,280 lines | 23% fewer |
 | Stylesheet ³ | 871 lines | 710 lines | 23% more |
-| Test declarations (`test()`/`it()`, same pattern) | 47 | 112 | 2.4× fewer |
 
 Not apples to apples, as on the comparison page:
 
 1. **Different work per page.** Solid renders prices on the server (about 37 rows; 5–12 ms of Worker CPU per search page, from `wrangler tail`); Foldkit renders a shell and fetches prices in the browser over RPC. First byte, HTML size, and "prices on screen" reflect that choice, not just framework speed. Solid's HTML carries the priced rows, its hydration keys, and the loader data the browser adopts; the loader data is packed one array per field (`packDomains`). In the browser, Solid's work before first paint (parse, style, layout, script: about 69 ms traced) is less than Foldkit's (about 77 ms; its inline pre-hydration script alone runs about 27 ms).
-2. **DevTools.** Foldkit ships its DevTools overlay in production by design, part of its JavaScript. Solid's dev toolbar (`@solidjs/start-devtools`) is development-only by design.
-3. **Inspector.** Solid's request Inspector is app code: 186 lines of TS/TSX and 78 of CSS are in its counts (its styles load only when it opens). Foldkit's DevTools is a separate package, not counted.
+2. **DevTools.** Foldkit ships its DevTools overlay in production by design: an estimated 22.9 KB brotli of its JavaScript (its `foldkit/devTools` modules plus the `@foldkit/devtools` overlay, about 4,200 lines of published JavaScript, bundled on their own without shared libraries), so about 192 KB without it. Solid's dev toolbar (`@solidjs/start-devtools`) is development-only by design.
+3. **Inspector.** Solid's request Inspector is app code: 186 lines of TS/TSX and 78 of CSS are in its counts (its styles load only when it opens). Foldkit's DevTools is a library, not counted.
 4. **Before hydration.** Foldkit's bootstrap script makes the input fully work before its bundle runs; Solid's captures clicks and typing and replays them when it hydrates.
 5. **Hosting.** Foldkit is served from a custom domain on a Cloudflare zone, Solid from workers.dev. Both are Cloudflare Workers.
 6. **Sizes** are what the server sends when asked for brotli; Chrome actually receives zstd from Cloudflare.
