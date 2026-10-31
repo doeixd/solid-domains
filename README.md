@@ -51,6 +51,29 @@ Not apples to apples, as on the comparison page:
 6. **Sizes** are what the server sends when asked for brotli; Chrome actually receives zstd from Cloudflare.
 7. **Scope.** One machine and network, desktop Chrome headless, no CPU or network throttling: phone-class devices are not measured.
 
+### PageSpeed Insights
+
+Google's Lighthouse 13.6.0 lab test of `/?q=sunbeam` on each live site, run from [pagespeed.web.dev](https://pagespeed.web.dev) on 2026-10-31. Medians of 3 runs per site and form factor, with the range across runs in parentheses where it varied:
+
+| | Solid 2.0 mobile | Foldkit mobile | Solid 2.0 desktop | Foldkit desktop |
+|---|--:|--:|--:|--:|
+| Performance score (higher is better) | 100 (99–100) | 95 (93–98) | 100 | 74 (64–74) |
+| First Contentful Paint | 0.9 s | 0.8 s | 0.2 s | 0.2 s |
+| Largest Contentful Paint | 0.9 s | 0.8 s | 0.2 s | 0.2 s |
+| Total Blocking Time | 40 ms (30–80) | 260 ms (100–310) | 30 ms (20–30) | 130 ms (130–300) |
+| Cumulative Layout Shift | 0.049 | 0 (0–0.082) | 0 (0–0.002) | 0.771 |
+| Speed Index | 0.9 s | 1.6 s (1.5–1.6) | 0.2 s (0.2–0.3) | 0.7 s (0.7–0.8) |
+
+Caveats:
+
+- **Lab, not real users.** Neither site has enough traffic for Chrome UX Report field data, so there is no Core Web Vitals assessment for either.
+- **Simulated.** Mobile emulates a Moto G Power on slow 4G with a slowed CPU; desktop uses lighter throttling. Lighthouse models throttled timings from an unthrottled load, from Google's servers rather than the machine used for the table above.
+- **Coarse and noisy.** Times are shown rounded to 0.1 s, so paint differences under about 100 ms do not register, and scores move several points between identical runs.
+- **Foldkit's desktop layout shift (0.771)** is its results section moving when the browser renders fetched results into the server-sent shell; it is most of its desktop score gap (layout shift is 25% of the score).
+- **Solid's mobile layout shift (0.049)** comes from the result list: the server cannot know the screen width, so it renders the desktop three-column grid, and on a phone hydration re-lays it as one column, moving rows below the fold.
+- **Total Blocking Time** follows JavaScript size; Foldkit ships about three times as much, including its DevTools overlay.
+- Each tested URL carried an extra `run=N` parameter so PSI would not reuse a cached report; both apps ignore it. Report ids are in `src/data/comparison.ts`.
+
 ## How a request flows
 
 1. **Shareable URLs.** The query and filters live in the URL (`/?q=acme&available=1&sort=price`), so the server renders a shared link already sorted and filtered.

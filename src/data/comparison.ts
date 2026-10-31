@@ -142,6 +142,59 @@ export const caveats = [
   'Timings are medians with the interquartile range across runs; differences whose ranges overlap are reported as within run-to-run variation.',
 ]
 
+/**
+ * PageSpeed Insights (Lighthouse 13.6.0) lab runs of /?q=sunbeam, recorded
+ * 2026-10-31 from pagespeed.web.dev: three runs per site and form factor,
+ * alternating sites. Times in ms (PSI shows them rounded to 0.1 s), CLS
+ * unitless, score 0–100. Each run's report id is kept so the numbers can be
+ * checked against the source.
+ */
+export type PsiRun = { id: string; score: number; fcp: number; lcp: number; tbt: number; cls: number; si: number }
+type PsiFormFactor = { solid: PsiRun[]; foldkit: PsiRun[] }
+
+export const pageSpeed: { measuredAt: string; lighthouse: string; mobile: PsiFormFactor; desktop: PsiFormFactor } = {
+  measuredAt: '2026-10-31',
+  lighthouse: '13.6.0',
+  mobile: {
+    solid: [
+      { id: 'ridiqxlrz3', score: 100, fcp: 900, lcp: 900, tbt: 30, cls: 0.049, si: 900 },
+      { id: 'f7691pum01', score: 100, fcp: 900, lcp: 900, tbt: 40, cls: 0.049, si: 900 },
+      { id: '97d9v7s4vn', score: 99, fcp: 900, lcp: 900, tbt: 80, cls: 0.049, si: 900 },
+    ],
+    foldkit: [
+      { id: 'a4uxcclum3', score: 98, fcp: 800, lcp: 800, tbt: 100, cls: 0.082, si: 1600 },
+      { id: '4276bae00i', score: 93, fcp: 800, lcp: 800, tbt: 310, cls: 0, si: 1600 },
+      { id: '1s44trb1bz', score: 95, fcp: 800, lcp: 800, tbt: 260, cls: 0, si: 1500 },
+    ],
+  },
+  desktop: {
+    solid: [
+      { id: '5htpw0tfmf', score: 100, fcp: 200, lcp: 200, tbt: 20, cls: 0.002, si: 300 },
+      { id: 'ud2n1t97km', score: 100, fcp: 200, lcp: 200, tbt: 30, cls: 0, si: 200 },
+      { id: 'd2kwdlacao', score: 100, fcp: 200, lcp: 200, tbt: 30, cls: 0, si: 200 },
+    ],
+    foldkit: [
+      { id: '7s2hi48abh', score: 74, fcp: 200, lcp: 200, tbt: 130, cls: 0.771, si: 700 },
+      { id: 'q8zm9iztwj', score: 74, fcp: 200, lcp: 200, tbt: 130, cls: 0.771, si: 700 },
+      { id: '3v0viln21k', score: 64, fcp: 200, lcp: 200, tbt: 300, cls: 0.771, si: 800 },
+    ],
+  },
+}
+
+export const psiReportUrl = (site: 'solid' | 'foldkit', formFactor: 'mobile' | 'desktop', id: string) =>
+  `https://pagespeed.web.dev/analysis/${site === 'solid' ? 'https-solid-domains-doeixd-workers-dev' : 'https-domains-foldkit-dev'}/${id}?form_factor=${formFactor}`
+
+/** Where PageSpeed Insights is not a like-for-like or a real-user measure. */
+export const pageSpeedCaveats = [
+  'Lab data, not real users. Neither site has enough traffic for Chrome UX Report field data, so PSI shows no Core Web Vitals assessment for either; these are single synthetic loads.',
+  'Simulated, not observed. Mobile emulates a Moto G Power on slow 4G with a slowed CPU; desktop uses lighter throttling. Lighthouse estimates throttled timings from an unthrottled load, so they are modeled values, and they run from Google’s servers, not the machine the other tables were measured on.',
+  'Coarse and noisy. PSI shows times rounded to 0.1 s, so paint differences under about 100 ms do not register, and the score moves several points between identical runs (Foldkit mobile ranged 93–98). Medians of three runs per site and form factor are shown, with the range.',
+  'Foldkit’s desktop layout shift (0.771) is its results section moving when the browser renders the fetched results into the server-sent shell; it is most of the gap in its desktop score. Layout shift is 25% of the score.',
+  'Solid’s mobile layout shift (0.049) is the result list: the server cannot know the screen width, so it renders the desktop three-column grid, and on a phone hydration re-lays it as one column, moving the rows below the fold.',
+  'Total Blocking Time is main-thread work from JavaScript, so it follows bundle size: Foldkit ships about three times the JavaScript, including its DevTools overlay.',
+  'Each tested URL carries an extra run=N query parameter so PSI cannot reuse a cached report; both apps ignore it.',
+]
+
 export type ConceptRow = { concept: string; foldkit: string; solid: string }
 
 export const concepts: ConceptRow[] = [

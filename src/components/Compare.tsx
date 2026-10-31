@@ -9,6 +9,10 @@ import {
   caveats,
   codeMetrics,
   concepts,
+  pageSpeed,
+  pageSpeedCaveats,
+  type PsiRun,
+  psiReportUrl,
   sizeMetrics,
   speedMetrics,
   strengths,
@@ -112,6 +116,95 @@ const MetricTable = (props: { title: string; caption: string; metrics: Metric[] 
   </section>
 )
 
+type PsiKey = Exclude<keyof PsiRun, 'id'>
+
+const PSI_ROWS: Array<{ key: PsiKey; label: string; detail: string }> = [
+  { key: 'score', label: 'Performance score', detail: 'Lighthouse, 0–100, higher is better' },
+  { key: 'fcp', label: 'First Contentful Paint', detail: 'Lower is better' },
+  { key: 'lcp', label: 'Largest Contentful Paint', detail: 'Lower is better' },
+  { key: 'tbt', label: 'Total Blocking Time', detail: 'Lower is better' },
+  { key: 'cls', label: 'Cumulative Layout Shift', detail: 'Lower is better' },
+  { key: 'si', label: 'Speed Index', detail: 'Lower is better' },
+]
+
+const psiFormat = (key: PsiKey, value: number) =>
+  key === 'score' ? String(value) : key === 'cls' ? value.toFixed(3) : key === 'tbt' ? `${value} ms` : `${(value / 1000).toFixed(1)} s`
+
+/** Median, plus the range when the runs disagree. */
+const psiCell = (runs: PsiRun[], key: PsiKey) => {
+  const values = runs.map(run => run[key]).sort((a, b) => a - b)
+  const median = values[Math.floor(values.length / 2)]!
+  const [low, high] = [values[0]!, values.at(-1)!]
+  return { median: psiFormat(key, median), range: low === high ? undefined : `${psiFormat(key, low)}–${psiFormat(key, high)}` }
+}
+
+const PsiTable = (props: { formFactor: 'mobile' | 'desktop' }) => {
+  const data = () => pageSpeed[props.formFactor]
+  const sides = [
+    { site: 'solid', name: 'Solid 2.0' },
+    { site: 'foldkit', name: 'Foldkit' },
+  ] as const
+  return (
+    <table class="metric-table psi-table">
+      <caption>
+        {props.formFactor === 'mobile' ? 'Mobile' : 'Desktop'}: median of {data().solid.length} runs per site, with the
+        range across runs. Reports:{' '}
+        <For each={sides}>
+          {(side, i) => (
+            <>
+              {side.name}{' '}
+              <For each={data()[side.site]}>
+                {(run, n) => (
+                  <>
+                    <a href={psiReportUrl(side.site, props.formFactor, run.id)}>{n() + 1}</a>
+                    {n() < data()[side.site].length - 1 ? ', ' : ''}
+                  </>
+                )}
+              </For>
+              {i() === 0 ? '; ' : '.'}
+            </>
+          )}
+        </For>
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Metric</th>
+          <For each={sides}>
+            {side => (
+              <th scope="col">
+                <span class={['swatch', `swatch-${side.site}`]} aria-hidden="true" />
+                {side.name}
+              </th>
+            )}
+          </For>
+        </tr>
+      </thead>
+      <tbody>
+        <For each={PSI_ROWS}>
+          {row => (
+            <tr>
+              <th scope="row">
+                {row.label}
+                <span class="metric-detail">{row.detail}</span>
+              </th>
+              <For each={sides}>
+                {side => (
+                  <td data-label={side.name} class="psi-value">
+                    {psiCell(data()[side.site], row.key).median}
+                    <Show when={psiCell(data()[side.site], row.key).range}>
+                      {range => <span class="bar-range">runs {range()}</span>}
+                    </Show>
+                  </td>
+                )}
+              </For>
+            </tr>
+          )}
+        </For>
+      </tbody>
+    </table>
+  )
+}
+
 const HeadlineStat = (props: { metric: Metric; noun: string }) => (
   <div class="headline-stat">
     <strong>{difference(props.metric)}</strong>
@@ -176,6 +269,20 @@ export default function Compare() {
             metrics={sizeMetrics}
           />
         </Show>
+        <section class="compare-section" aria-labelledby="pagespeed-heading">
+          <h2 id="pagespeed-heading">PageSpeed Insights</h2>
+          <p class="compare-note">
+            Google’s Lighthouse lab test (version {pageSpeed.lighthouse}) of /?q=sunbeam on each live site, run{' '}
+            {pageSpeed.measuredAt}. It is a different, coarser instrument from the tables above; read the notes under
+            the tables before comparing scores.
+          </p>
+          <PsiTable formFactor="mobile" />
+          <PsiTable formFactor="desktop" />
+          <ul class="method-list">
+            <For each={pageSpeedCaveats}>{item => <li>{item}</li>}</For>
+          </ul>
+        </section>
+
         <MetricTable
           title="Code"
           caption="Counted the same way for both: non-blank lines, excluding tests, fixtures, Story files, and the shared 556-entry TLD list. Solid’s count also excludes this comparison page, which Foldkit has no equivalent of."

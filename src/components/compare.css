@@ -3,10 +3,11 @@
 
 @layer components {
   .compare-page {
-    /* Categorical slots 1–2 (dark steps), validated against #0a0a0a:
-       CVD ΔE 26.8, normal-vision ΔE 31.8, both ≥ 3:1. */
+    /* Two series, validated against #0a0a0a: CVD ΔE 24.5 (deutan),
+       normal-vision ΔE 26.3, both ≥ 3:1. Blue and green sit close for
+       tritan vision (ΔE 4.9), so every bar also carries its series label. */
     --series-solid: #3987e5;
-    --series-foldkit: #d95926;
+    --series-foldkit: #2f9e44;
   }
 
   .compare {
@@ -104,6 +105,18 @@
 
   .metric-note {
     @apply mt-1.5 block text-[12px] leading-4 font-normal text-gray-400 italic;
+  }
+
+  .psi-table + .psi-table {
+    @apply mt-6;
+  }
+
+  .psi-value {
+    @apply text-[14px] text-gray-100 tabular-nums;
+  }
+
+  .psi-table caption a {
+    @apply text-gray-300 underline underline-offset-2;
   }
 
   .bar-range {
