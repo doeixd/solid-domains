@@ -47,12 +47,12 @@ export const sizeMetrics: Metric[] = [
 ]
 
 /**
- * Counted 2026-10-30: non-blank lines of TypeScript, excluding tests,
+ * Counted 2026-10-31: non-blank lines of TypeScript, excluding tests,
  * fixtures, the shared 556-entry TLD list, and (here) this comparison page.
  */
 export const codeMetrics: Metric[] = [
-  metric('Application code', 'Non-blank TS/TSX lines, excluding tests', 'lines', [2324, 3280]),
-  metric('Stylesheet', 'Non-blank lines (shared Tailwind base)', 'lines', [862, 710]),
+  metric('Application code', 'Non-blank TS/TSX lines, excluding tests', 'lines', [2553, 3280]),
+  metric('Stylesheet', 'Non-blank lines (shared Tailwind base)', 'lines', [867, 710]),
 ]
 
 export const testFacts = {

@@ -20,6 +20,30 @@ The browser suite covers streamed SSR, hydration without refetching, search and 
 
 Requires Node 22.12+ (Solid 2.0 RC, `@solidjs/vite-plugin@next` in start mode, Vite 8, Tailwind 4).
 
+## How it compares
+
+Both versions as deployed on Cloudflare Workers, median of 15 cold loads of `/?q=sunbeam` per site in headless Chrome (1280×900), run alternately from the same machine on 2026-10-31. Lower is better. The live page is [/compare](https://solid-domains.doeixd.workers.dev/compare); regenerate the data with `node scripts/benchmark.mjs`.
+
+| | Solid 2.0 (this repo) | Foldkit original | Solid vs Foldkit |
+|---|--:|--:|---|
+| **Speed** | | | |
+| Time to first byte | 51 ms | 52 ms | about the same |
+| First paint | 184 ms | 176 ms | about the same |
+| Top Results priced | 184 ms | 648 ms | 3.5× faster |
+| First page priced (60 of 556) | 184 ms | 722 ms | 3.9× faster |
+| New search (keystroke → prices, incl. 150 ms debounce) | 213 ms | 261 ms | 18% faster |
+| **Size** (as served, brotli) | | | |
+| JavaScript | 66.6 KB | 214.8 KB | 3.2× smaller |
+| HTML | 5.8 KB | 4.5 KB | 28% larger |
+| CSS | 9.1 KB | 8.0 KB | 14% larger |
+| Requests at load | 7 | 9 | 2 fewer |
+| **Code** | | | |
+| Application code (non-blank TS/TSX, excl. tests and the TLD list) | 2,553 lines | 3,280 lines | 22% fewer |
+| Stylesheet | 867 lines | 710 lines | 22% more |
+| Test declarations | 40 | 112 | Foldkit tests far more |
+
+Prices arrive with Solid's first paint because the server preloads them into the first HTML; Foldkit sends a lighter shell and fetches prices over RPC after its bundle loads. Foldkit ships its DevTools in production by design, which accounts for part of its JavaScript. Neither backend adds artificial latency.
+
 ## How a request flows
 
 1. **Shareable URLs.** The query and filters live in the URL (`/?q=acme&available=1&sort=price`), so the server renders a shared link already sorted and filtered.
