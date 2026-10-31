@@ -118,90 +118,153 @@ const MetricTable = (props: { title: string; caption: string; metrics: Metric[] 
 
 type PsiKey = Exclude<keyof PsiRun, 'id'>
 
-const PSI_ROWS: Array<{ key: PsiKey; label: string; detail: string }> = [
-  { key: 'score', label: 'Performance score', detail: 'Lighthouse, 0–100, higher is better' },
-  { key: 'fcp', label: 'First Contentful Paint', detail: 'Lower is better' },
-  { key: 'lcp', label: 'Largest Contentful Paint', detail: 'Lower is better' },
-  { key: 'tbt', label: 'Total Blocking Time', detail: 'Lower is better' },
-  { key: 'cls', label: 'Cumulative Layout Shift', detail: 'Lower is better' },
-  { key: 'si', label: 'Speed Index', detail: 'Lower is better' },
+const PSI_METRICS: Array<{ key: Exclude<PsiKey, 'score'>; short: string; label: string }> = [
+  { key: 'fcp', short: 'FCP', label: 'First Contentful Paint' },
+  { key: 'lcp', short: 'LCP', label: 'Largest Contentful Paint' },
+  { key: 'tbt', short: 'TBT', label: 'Total Blocking Time' },
+  { key: 'cls', short: 'CLS', label: 'Cumulative Layout Shift' },
+  { key: 'si', short: 'SI', label: 'Speed Index' },
 ]
 
-const psiFormat = (key: PsiKey, value: number) =>
-  key === 'score' ? String(value) : key === 'cls' ? value.toFixed(3) : key === 'tbt' ? `${value} ms` : `${(value / 1000).toFixed(1)} s`
+const PSI_SIDES = [
+  { site: 'solid', name: 'Solid 2.0' },
+  { site: 'foldkit', name: 'Foldkit' },
+] as const
+
+const PSI_FORM_FACTORS = {
+  mobile: { title: 'Mobile', device: 'Emulated Moto G Power, slow 4G' },
+  desktop: { title: 'Desktop', device: 'Emulated desktop, light throttling' },
+} as const
+
+const psiNumber = (key: PsiKey, value: number) =>
+  key === 'score' || key === 'tbt' ? String(value) : key === 'cls' ? value.toFixed(3) : (value / 1000).toFixed(1)
+const psiUnit = (key: PsiKey) => (key === 'tbt' ? ' ms' : key === 'score' || key === 'cls' ? '' : ' s')
+const psiFormat = (key: PsiKey, value: number) => `${psiNumber(key, value)}${psiUnit(key)}`
 
 /** Median, plus the range when the runs disagree. */
 const psiCell = (runs: PsiRun[], key: PsiKey) => {
   const values = runs.map(run => run[key]).sort((a, b) => a - b)
   const median = values[Math.floor(values.length / 2)]!
   const [low, high] = [values[0]!, values.at(-1)!]
-  return { median: psiFormat(key, median), range: low === high ? undefined : `${psiFormat(key, low)}–${psiFormat(key, high)}` }
+  return {
+    value: median,
+    median: psiFormat(key, median),
+    range: low === high ? undefined : `${psiNumber(key, low)}–${psiNumber(key, high)}${psiUnit(key)}`,
+  }
 }
 
-const PsiTable = (props: { formFactor: 'mobile' | 'desktop' }) => {
+/** A Lighthouse-style ring, in the series color: identity, not a grade. */
+const ScoreRing = (props: { score: number; series: 'solid' | 'foldkit'; name: string }) => (
+  <svg class="score-ring" viewBox="0 0 64 64" role="img" aria-label={`${props.name}: performance score ${props.score}`}>
+    <circle class="score-ring-track" cx="32" cy="32" r="28" />
+    <circle
+      class={['score-ring-value', `score-ring-${props.series}`]}
+      cx="32"
+      cy="32"
+      r="28"
+      pathLength="100"
+      stroke-dasharray={`${props.score} 100`}
+    />
+    <text x="32" y="32" dy="0.35em" text-anchor="middle" aria-hidden="true">
+      {props.score}
+    </text>
+  </svg>
+)
+
+const PsiCard = (props: { formFactor: 'mobile' | 'desktop' }) => {
   const data = () => pageSpeed[props.formFactor]
-  const sides = [
-    { site: 'solid', name: 'Solid 2.0' },
-    { site: 'foldkit', name: 'Foldkit' },
-  ] as const
+  const info = () => PSI_FORM_FACTORS[props.formFactor]
   return (
-    <table class="metric-table psi-table">
-      <caption>
-        {props.formFactor === 'mobile' ? 'Mobile' : 'Desktop'}: median of {data().solid.length} runs per site, with the
-        range across runs. Reports:{' '}
-        <For each={sides}>
-          {(side, i) => (
-            <>
-              {side.name}{' '}
-              <For each={data()[side.site]}>
-                {(run, n) => (
-                  <>
-                    <a href={psiReportUrl(side.site, props.formFactor, run.id)}>{n() + 1}</a>
-                    {n() < data()[side.site].length - 1 ? ', ' : ''}
-                  </>
-                )}
-              </For>
-              {i() === 0 ? '; ' : '.'}
-            </>
-          )}
-        </For>
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">Metric</th>
-          <For each={sides}>
-            {side => (
-              <th scope="col">
+    <article class="psi-card" aria-labelledby={`psi-${props.formFactor}`}>
+      <header class="psi-card-header">
+        <h3 id={`psi-${props.formFactor}`}>{info().title}</h3>
+        <span>{info().device}</span>
+      </header>
+
+      <div class="psi-scores">
+        <For each={PSI_SIDES}>
+          {side => (
+            <div class="psi-score">
+              <ScoreRing score={psiCell(data()[side.site], 'score').value} series={side.site} name={side.name} />
+              <span class="psi-score-name">
                 <span class={['swatch', `swatch-${side.site}`]} aria-hidden="true" />
                 {side.name}
-              </th>
-            )}
-          </For>
-        </tr>
-      </thead>
-      <tbody>
-        <For each={PSI_ROWS}>
-          {row => (
-            <tr>
-              <th scope="row">
-                {row.label}
-                <span class="metric-detail">{row.detail}</span>
-              </th>
-              <For each={sides}>
-                {side => (
-                  <td data-label={side.name} class="psi-value">
-                    {psiCell(data()[side.site], row.key).median}
-                    <Show when={psiCell(data()[side.site], row.key).range}>
-                      {range => <span class="bar-range">runs {range()}</span>}
-                    </Show>
-                  </td>
-                )}
-              </For>
-            </tr>
+              </span>
+              <span class="psi-score-range">
+                {psiCell(data()[side.site], 'score').range
+                  ? `runs ${psiCell(data()[side.site], 'score').range}`
+                  : `all ${data()[side.site].length} runs`}
+              </span>
+            </div>
           )}
         </For>
-      </tbody>
-    </table>
+      </div>
+
+      <table class="psi-metrics">
+        <caption class="sr-only">
+          {info().title} Lighthouse metrics, median of {data().solid.length} runs per site; lower is better.
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Metric</th>
+            <For each={PSI_SIDES}>
+              {side => (
+                <th scope="col">
+                  <span class={['swatch', `swatch-${side.site}`]} aria-hidden="true" />
+                  {side.name}
+                </th>
+              )}
+            </For>
+          </tr>
+        </thead>
+        <tbody>
+          <For each={PSI_METRICS}>
+            {metric => (
+              <tr>
+                <th scope="row">
+                  <abbr title={metric.label}>{metric.short}</abbr>
+                  <span class="psi-metric-label">{metric.label}</span>
+                </th>
+                <For each={PSI_SIDES}>
+                  {side => (
+                    <td>
+                      {psiCell(data()[side.site], metric.key).median}
+                      <Show when={psiCell(data()[side.site], metric.key).range}>
+                        {range => <span class="psi-range">{range()}</span>}
+                      </Show>
+                    </td>
+                  )}
+                </For>
+              </tr>
+            )}
+          </For>
+        </tbody>
+      </table>
+
+      <footer class="psi-card-footer">
+        <p>Median of {data().solid.length} runs, with the range when runs differed.</p>
+        <div class="psi-report-links">
+          Reports
+          <For each={PSI_SIDES}>
+          {side => (
+            <span class="psi-reports">
+              {side.name}
+              <For each={data()[side.site]}>
+                {(run, n) => (
+                  <a
+                    href={psiReportUrl(side.site, props.formFactor, run.id)}
+                    aria-label={`${side.name} ${info().title.toLowerCase()} report ${n() + 1}`}
+                  >
+                    {n() + 1}
+                  </a>
+                )}
+              </For>
+            </span>
+          )}
+          </For>
+        </div>
+      </footer>
+    </article>
   )
 }
 
@@ -271,13 +334,15 @@ export default function Compare() {
         </Show>
         <section class="compare-section" aria-labelledby="pagespeed-heading">
           <h2 id="pagespeed-heading">PageSpeed Insights</h2>
-          <p class="compare-note">
+          <p class="psi-intro">
             Google’s Lighthouse lab test (version {pageSpeed.lighthouse}) of /?q=sunbeam on each live site, run{' '}
-            {pageSpeed.measuredAt}. It is a different, coarser instrument from the tables above; read the notes under
-            the tables before comparing scores.
+            {pageSpeed.measuredAt}. A coarser instrument than the tables above: read the notes below before comparing
+            scores.
           </p>
-          <PsiTable formFactor="mobile" />
-          <PsiTable formFactor="desktop" />
+          <div class="psi-grid">
+            <PsiCard formFactor="mobile" />
+            <PsiCard formFactor="desktop" />
+          </div>
           <ul class="method-list">
             <For each={pageSpeedCaveats}>{item => <li>{item}</li>}</For>
           </ul>

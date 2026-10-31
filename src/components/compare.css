@@ -107,16 +107,149 @@
     @apply mt-1.5 block text-[12px] leading-4 font-normal text-gray-400 italic;
   }
 
-  .psi-table + .psi-table {
-    @apply mt-6;
+  .psi-intro {
+    @apply mt-2 mb-5 max-w-[68ch] text-[14px] leading-6 text-gray-400;
   }
 
-  .psi-value {
+  .psi-grid {
+    @apply grid grid-cols-2 gap-3 max-[860px]:grid-cols-1;
+  }
+
+  .psi-card {
+    @apply flex flex-col overflow-hidden rounded-lg border border-gray-800 bg-gray-950;
+  }
+
+  .psi-card-header {
+    @apply flex items-baseline justify-between gap-3 px-5 pt-4;
+  }
+
+  .compare-section .psi-card-header h3 {
+    @apply m-0 text-[15px] font-semibold;
+  }
+
+  .psi-card-header span {
+    @apply text-right text-[12px] text-gray-400;
+  }
+
+  .psi-scores {
+    @apply grid grid-cols-2 gap-3 px-5 pt-4 pb-5;
+  }
+
+  .psi-score {
+    @apply flex flex-col items-center gap-1.5 rounded-md bg-[#111] px-3 py-4;
+  }
+
+  .score-ring {
+    @apply size-[76px];
+  }
+
+  .score-ring circle {
+    @apply fill-none;
+    stroke-width: 6;
+  }
+
+  .score-ring-track {
+    stroke: #262626;
+  }
+
+  .score-ring-value {
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+
+  .score-ring-solid {
+    stroke: var(--series-solid);
+  }
+
+  .score-ring-foldkit {
+    stroke: var(--series-foldkit);
+  }
+
+  .score-ring text {
+    @apply fill-gray-100 text-[20px] font-semibold tabular-nums;
+  }
+
+  .psi-score-name {
+    @apply mt-1 text-[13px] font-medium whitespace-nowrap text-gray-100;
+  }
+
+  .psi-score-name .swatch {
+    @apply mr-1.5;
+  }
+
+  .psi-score-range {
+    @apply text-[11px] text-gray-400 tabular-nums;
+  }
+
+  .psi-metrics {
+    @apply w-full border-collapse border-t border-[#222] text-left text-[13px];
+  }
+
+  .psi-metrics th,
+  .psi-metrics td {
+    @apply border-b border-[#1c1c1c] px-5 py-2.5 align-top max-[420px]:px-3;
+  }
+
+  .psi-metrics thead th {
+    @apply text-[11px] font-normal tracking-wide whitespace-nowrap text-gray-400 uppercase;
+  }
+
+  .psi-metrics thead th:not(:first-child),
+  .psi-metrics td {
+    @apply w-[30%] text-right;
+  }
+
+  .psi-metrics thead .swatch {
+    @apply mr-1.5;
+  }
+
+  .psi-metrics tbody th {
+    @apply font-normal;
+  }
+
+  .psi-metrics abbr {
+    @apply block text-[13px] font-semibold text-gray-100 no-underline;
+  }
+
+  .psi-metric-label {
+    @apply block text-[11px] leading-4 text-gray-400;
+  }
+
+  .psi-metrics td {
     @apply text-[14px] text-gray-100 tabular-nums;
   }
 
-  .psi-table caption a {
-    @apply text-gray-300 underline underline-offset-2;
+  .psi-range {
+    @apply block text-[11px] text-gray-400;
+  }
+
+  .psi-metrics tbody tr:last-child > * {
+    @apply border-b-0;
+  }
+
+  .psi-card-footer {
+    @apply mt-auto flex flex-col gap-2 border-t border-[#222] px-5 py-3 text-[11px] text-gray-400;
+  }
+
+  .psi-card-footer p {
+    @apply m-0;
+  }
+
+  .psi-report-links {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-2;
+  }
+
+  .psi-reports {
+    @apply inline-flex items-center gap-1.5 text-gray-300;
+  }
+
+  .compare .psi-reports a {
+    @apply inline-flex size-6 items-center justify-center rounded border border-gray-800 text-gray-100 no-underline hover:border-gray-500;
+  }
+
+  .psi-grid + .method-list {
+    @apply mt-6;
   }
 
   .bar-range {
