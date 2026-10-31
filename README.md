@@ -27,14 +27,14 @@ Both versions as deployed on Cloudflare Workers, median of 15 cold loads of `/?q
 | | Solid 2.0 (this repo) | Foldkit original | Solid vs Foldkit |
 |---|--:|--:|---|
 | **Speed** | | | |
-| Time to first byte | 52 ms | 48 ms | 8% slower (4 ms) |
-| First paint | 164 ms | 156 ms | 5% slower |
-| Top Results priced | 164 ms | 595 ms | 3.6× faster |
-| First page priced (60 of 556) | 175 ms | 650 ms | 3.7× faster |
-| New search (keystroke → prices, incl. 150 ms debounce) | 212 ms | 247 ms | 14% faster |
+| Time to first byte | 51 ms | 49 ms | about the same |
+| First paint | 160 ms | 168 ms | about the same (±10 ms run to run) |
+| Top Results priced | 160 ms | 580 ms | 3.6× faster |
+| First page priced (60 of 556) | 192 ms | 629 ms | 3.3× faster |
+| New search (keystroke → prices, incl. 150 ms debounce) | 214 ms | 245 ms | 13% faster |
 | **Size** (as served, brotli) | | | |
-| JavaScript | 75.5 KB | 214.9 KB | 2.8× smaller |
-| HTML | 5.6 KB | 4.5 KB | 24% larger |
+| JavaScript | 75.7 KB | 215.0 KB | 2.8× smaller |
+| HTML | 5.0 KB | 4.5 KB | 10% larger |
 | CSS | 8.6 KB | 8.0 KB | 8% larger |
 | Requests at load | 7 | 9 | 2 fewer |
 | **Code** | | | |
@@ -42,7 +42,13 @@ Both versions as deployed on Cloudflare Workers, median of 15 cold loads of `/?q
 | Stylesheet | 793 lines | 710 lines | 12% more |
 | Test declarations | 44 | 112 | Foldkit tests far more |
 
-Prices arrive with Solid's first paint because the server preloads them into the first HTML; Foldkit sends a lighter shell and fetches prices over RPC after its bundle loads. That shell is also why Foldkit's first byte and HTML are a little smaller: Solid renders about 37 priced rows on the server (about 2 ms of render). Most of the CSS is the same as Foldkit's; the Inspector's styles load with the Inspector. Foldkit ships its DevTools in production by design, which accounts for part of its JavaScript. Neither backend adds artificial latency.
+Prices arrive with Solid's first paint because the server preloads them into the first HTML; Foldkit sends a lighter shell and fetches prices over RPC after its bundle loads. That trade has a small, measured cost:
+
+- **HTML.** Solid's page carries the priced rows, Solid's hydration keys, and the loader data the browser adopts; Foldkit's carries none of these. The loader data is packed one array per field (`packDomains`), which took the page from 44 to 39 KB raw.
+- **Server time.** A search page costs 5–12 ms of Worker CPU (median 8, from `wrangler tail`) against 2 ms for the landing page: the server renders about 37 priced rows. Foldkit's search page renders no prices.
+- **First paint** is not slowed in the browser: traced before first paint, Solid's parse, style, layout, and script work (~69 ms) is less than Foldkit's (~77 ms; its inline pre-hydration script alone runs ~27 ms). Any first-paint gap follows the first byte.
+
+Foldkit ships its DevTools in production by design, which accounts for part of its JavaScript. Most of the CSS is shared; the Inspector's styles load with the Inspector.
 
 ## How a request flows
 

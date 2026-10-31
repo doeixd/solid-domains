@@ -4,11 +4,12 @@ import { lazy } from 'solid-js'
 import { NotFound } from './components/Chrome'
 import {
   DOMAIN_PAGE_SIZE,
-  type Domain,
   type DomainRange,
+  type PackedDomains,
   FULL_CATALOG,
   TOP_RESULT_COUNT,
   isFullCatalogRequired,
+  packDomains,
   paramsToFilters,
   queryToLabel,
 } from './data/domain'
@@ -16,7 +17,7 @@ import SearchPage from './pages/SearchPage'
 import { searchDomains } from './server/domains'
 
 /** The ranges a search page's first render reads, fetched before it renders. */
-export type PreloadedSearch = { label: string; ranges: Array<{ range: DomainRange; domains: Domain[] }> }
+export type PreloadedSearch = { label: string; ranges: Array<{ range: DomainRange; packed: PackedDomains }> }
 
 /**
  * App-level preload (a loader): runs once per page load and its result
@@ -42,7 +43,8 @@ const preloadSearch = async ({ location, intent }: RoutePreloadFuncArgs): Promis
   // A failed range is simply left out: the page fetches it through query().
   const ranges = wanted.flatMap((range, i) => {
     const result = settled[i]!
-    return result.status === 'fulfilled' ? [{ range, domains: result.value }] : []
+    // Packed (one array per field): the serialized payload the browser adopts.
+    return result.status === 'fulfilled' ? [{ range, packed: packDomains(label, range.offset, result.value) }] : []
   })
   return { label, ranges }
 }

@@ -211,3 +211,49 @@ export const searchHref = (query: string, filters: Filters = DEFAULT_FILTERS) =>
   const search = params.toString()
   return search ? `/?${search}` : '/'
 }
+
+// Compact, lossless transport for a run of consecutive candidates: one array
+// per field instead of one object per domain, and no names (they are the
+// label plus each TLD). Used for the server-rendered loader data, where 60
+// object literals with repeated keys made up most of the serialized payload.
+
+export type PackedDomains = {
+  label: string
+  offset: number
+  /** 1 = Available, 0 = Unconfirmed */
+  available: number[]
+  price: number[]
+  renewalPrice: number[]
+  years: number[]
+  premium: number[]
+}
+
+export const packDomains = (label: string, offset: number, domains: readonly Domain[]): PackedDomains => {
+  const packed: PackedDomains = { label, offset, available: [], price: [], renewalPrice: [], years: [], premium: [] }
+  for (const domain of domains) {
+    const isAvailable = domain._tag === 'Available'
+    packed.available.push(isAvailable ? 1 : 0)
+    packed.price.push(isAvailable ? domain.price : 0)
+    packed.renewalPrice.push(isAvailable ? domain.renewalPrice : 0)
+    packed.years.push(isAvailable ? domain.years : 0)
+    packed.premium.push(isAvailable && domain.isPremium ? 1 : 0)
+  }
+  return packed
+}
+
+export const unpackDomains = (packed: PackedDomains): Domain[] =>
+  packed.available.map((available, i) => {
+    const tld = domainTlds[packed.offset + i]!
+    const name = `${packed.label}.${tld}`
+    return available
+      ? {
+          _tag: 'Available',
+          name,
+          tld,
+          price: packed.price[i]!,
+          renewalPrice: packed.renewalPrice[i]!,
+          years: packed.years[i]!,
+          isPremium: packed.premium[i] === 1,
+        }
+      : { _tag: 'Unconfirmed', name, tld }
+  })

@@ -11,6 +11,8 @@ import {
   DEFAULT_FILTERS,
   type Filters,
   isFullCatalogRequired,
+  packDomains,
+  unpackDomains,
   paramsToFilters,
   queryToLabel,
   searchHref,
@@ -140,5 +142,24 @@ describe('search URLs', () => {
   test('unknown values fall back to defaults', () => {
     expect(paramsToFilters(new URLSearchParams('tld=nope&available=yes&sort=cheapest'))).toEqual(DEFAULT_FILTERS)
     expect(paramsToFilters(new URLSearchParams('tld=IO'))).toMatchObject({ tld: 'io' })
+  })
+})
+
+describe('packed domain transport', () => {
+  test('round-trips every field, for available and unconfirmed domains', () => {
+    for (const [label, offset, limit] of [['vercel', 0, 4], ['acme', 4, 56], ['acme', 0, 556]] as const) {
+      const domains = makeDemoDomains(label).slice(offset, offset + limit)
+      expect(unpackDomains(packDomains(label, offset, domains))).toEqual(domains)
+    }
+  })
+
+  test('keeps premium and multi-year listings', () => {
+    const domains: Domain[] = [{ _tag: 'Available', name: 'x.com', tld: 'com', price: 99, renewalPrice: 25, years: 2, isPremium: true }]
+    expect(unpackDomains(packDomains('x', 0, domains))).toEqual(domains)
+  })
+
+  test('is much smaller than the objects it replaces', () => {
+    const domains = makeDemoDomains('sunbeam').slice(0, 60)
+    expect(JSON.stringify(packDomains('sunbeam', 0, domains)).length).toBeLessThan(JSON.stringify(domains).length / 3)
   })
 })

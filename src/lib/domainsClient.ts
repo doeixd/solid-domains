@@ -11,6 +11,7 @@ import {
   TOP_RESULT_COUNT,
   domainTlds,
   rangeForTld,
+  unpackDomains,
 } from '../data/domain'
 import { networkSettings } from '../data/network'
 import { searchDomains } from '../server/domains'
@@ -157,12 +158,19 @@ export const createDomainsClient = (
   // effect's apply phase, where writes belong), so later reads through
   // query() are cache hits, not refetches.
   const [isPreloadDropped, setPreloadDropped] = createSignal(false)
+  // Unpack each preloaded range once, not once per row that reads it.
+  const unpacked = new WeakMap<object, Domain[]>()
+  const domainsOf = (entry: PreloadedSearch['ranges'][number]) => {
+    let domains = unpacked.get(entry.packed)
+    if (!domains) unpacked.set(entry.packed, (domains = unpackDomains(entry.packed)))
+    return domains
+  }
   // Created on both sides: an owner made only in the browser would shift
   // every hydration id after it. (Effects never apply on the server.)
   createEffect(preload, data => {
     for (const entry of data?.ranges ?? []) {
-      query.set(keyFor(data!.label, entry.range), entry.domains)
-      recordLoaded(data!.label, entry.range, entry.domains)
+      query.set(keyFor(data!.label, entry.range), domainsOf(entry))
+      recordLoaded(data!.label, entry.range, domainsOf(entry))
     }
   })
   const preloadedRange = (label: string, range: DomainRange): Domain[] | undefined => {
@@ -170,7 +178,8 @@ export const createDomainsClient = (
     const data = preload()
     if (!data || data.label !== label) return undefined
     const key = keyFor(label, range)
-    return data.ranges.find(entry => keyFor(data.label, entry.range) === key)?.domains
+    const entry = data.ranges.find(candidate => keyFor(data.label, candidate.range) === key)
+    return entry && domainsOf(entry)
   }
 
   /** One domain's result. Pending while the label settles or its range loads. */

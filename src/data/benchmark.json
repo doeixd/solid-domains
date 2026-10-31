@@ -8,28 +8,28 @@
   },
   "results": {
     "foldkit": {
-      "ttfb": 48,
-      "fcp": 156,
-      "topPrices": 595,
-      "firstPage": 650,
+      "ttfb": 49,
+      "fcp": 168,
+      "topPrices": 580,
+      "firstPage": 629,
       "requests": 9,
       "htmlBytes": 4638,
-      "jsBytes": 220038,
+      "jsBytes": 220162,
       "cssBytes": 8205,
       "fontBytes": 29400,
-      "search": 247
+      "search": 245
     },
     "solid": {
-      "ttfb": 52,
-      "fcp": 164,
-      "topPrices": 164,
-      "firstPage": 175,
+      "ttfb": 51,
+      "fcp": 160,
+      "topPrices": 160,
+      "firstPage": 192,
       "requests": 7,
-      "htmlBytes": 5737,
-      "jsBytes": 77304,
+      "htmlBytes": 5095,
+      "jsBytes": 77508,
       "cssBytes": 8823,
       "fontBytes": 29400,
-      "search": 212
+      "search": 214
     }
   }
 }
