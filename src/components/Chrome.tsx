@@ -118,7 +118,8 @@ export const Hero = () => (
       <span>the next viral idea.</span>
     </h1>
     <p>
-      Sample data. Built with <a href="https://v2.solidjs.com">Solid 2.0</a>
+      Sample data. Built with <a href="https://v2.solidjs.com">Solid 2.0</a> ·{' '}
+      <a href="https://github.com/doeixd/solid-domains">Source on GitHub</a>
     </p>
     <SearchForm />
     <div class="hero-search-space" />

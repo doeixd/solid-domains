@@ -38,3 +38,14 @@ test('the TLD sheet searches the full catalog', async ({ page }) => {
   await expect(page).toHaveURL(/tld=zone/)
   await expect(page.locator('.virtual-cell .domain-name')).toHaveText(['sunbeam.zone'])
 })
+
+test('the landing page links to the source on one line', async ({ page }) => {
+  await page.goto('/')
+  const link = page.getByRole('link', { name: 'Source on GitHub' })
+  await expect(link).toHaveAttribute('href', 'https://github.com/doeixd/solid-domains')
+  // The hero positions the search box from fixed line heights, so the
+  // subtitle must not wrap.
+  const subtitle = page.locator('.hero p')
+  const lineHeight = parseFloat(await subtitle.evaluate(el => getComputedStyle(el).lineHeight))
+  expect((await subtitle.boundingBox())!.height).toBeLessThanOrEqual(lineHeight + 1)
+})

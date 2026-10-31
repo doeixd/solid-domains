@@ -44,6 +44,14 @@ test.describe('server rendering', () => {
     await expect(page.getByRole('searchbox', { name: 'Search domains' })).toBeVisible()
   })
 
+  test('the landing page links to the source', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute(
+      'href',
+      'https://github.com/doeixd/solid-domains',
+    )
+  })
+
   test('unknown paths are a real 404', async ({ page }) => {
     const response = await page.goto('/nope')
     expect(response?.status()).toBe(404)
