@@ -99,7 +99,7 @@
   }
 
   .metric-table tbody th {
-    @apply w-[30%] font-medium;
+    @apply font-medium;
   }
 
   .metric-note {
@@ -115,7 +115,7 @@
   }
 
   .metric-table td {
-    @apply w-[28%] align-middle;
+    @apply align-middle;
   }
 
   .bar-cell {
@@ -140,11 +140,32 @@
   }
 
   .concept-table tbody th {
-    @apply w-[18%] font-medium whitespace-nowrap;
+    @apply font-medium;
   }
 
   .concept-table td {
-    @apply w-[41%] leading-5 text-gray-300;
+    @apply leading-5 text-gray-300;
+  }
+
+  /* Column widths are for the desktop table only. On phones the cells stack
+     (display: block), where a percentage width would squeeze each row's
+     label into a narrow column. */
+  @media (min-width: 701px) {
+    .metric-table tbody th {
+      @apply w-[30%];
+    }
+
+    .metric-table td {
+      @apply w-[28%];
+    }
+
+    .concept-table tbody th {
+      @apply w-[18%] whitespace-nowrap;
+    }
+
+    .concept-table td {
+      @apply w-[41%];
+    }
   }
 
   .fact-list {

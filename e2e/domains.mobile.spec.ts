@@ -49,3 +49,14 @@ test('the landing page links to the source on one line', async ({ page }) => {
   const lineHeight = parseFloat(await subtitle.evaluate(el => getComputedStyle(el).lineHeight))
   expect((await subtitle.boundingBox())!.height).toBeLessThanOrEqual(lineHeight + 1)
 })
+
+test('comparison tables stack full-width on phones', async ({ page }) => {
+  await page.goto('/compare')
+  const table = await page.locator('.metric-table').first().boundingBox()
+  const label = await page.locator('.metric-table tbody th').first().boundingBox()
+  const concept = await page.locator('.concept-table tbody th').first().boundingBox()
+  // Each row's label and notes use the table's width, not a desktop column.
+  expect(label!.width).toBeGreaterThan(table!.width * 0.85)
+  expect(concept!.width).toBeGreaterThan(table!.width * 0.85)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
+})
