@@ -1,0 +1,35 @@
+{
+  "measuredAt": "2026-10-31",
+  "runs": 15,
+  "query": "sunbeam",
+  "sites": {
+    "foldkit": "https://domains.foldkit.dev",
+    "solid": "https://solid-domains.doeixd.workers.dev"
+  },
+  "results": {
+    "foldkit": {
+      "ttfb": 52,
+      "fcp": 176,
+      "topPrices": 648,
+      "firstPage": 722,
+      "requests": 9,
+      "htmlBytes": 4638,
+      "jsBytes": 219980,
+      "cssBytes": 8205,
+      "fontBytes": 29400,
+      "search": 261
+    },
+    "solid": {
+      "ttfb": 51,
+      "fcp": 184,
+      "topPrices": 184,
+      "firstPage": 184,
+      "requests": 7,
+      "htmlBytes": 5927,
+      "jsBytes": 68184,
+      "cssBytes": 9332,
+      "fontBytes": 29400,
+      "search": 213
+    }
+  }
+}

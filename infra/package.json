@@ -1,0 +1,23 @@
+{
+  "name": "solid-domains-infra",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@alchemy.run/cloudflare": "^2.0.0-beta.84",
+    "@alchemy.run/frontend-frameworks": "^2.0.0-beta.84",
+    "@effect/platform-node": "4.0.6",
+    "alchemy": "^2.0.0-beta.84",
+    "effect": "4.0.6"
+  },
+  "scripts": {
+    "plan": "alchemy plan",
+    "deploy": "alchemy deploy",
+    "destroy": "alchemy destroy",
+    "dev": "alchemy dev"
+  },
+  "overrides": {
+    "effect": "4.0.6",
+    "@effect/platform-node": "4.0.6",
+    "@effect/platform-node-shared": "4.0.6"
+  }
+}

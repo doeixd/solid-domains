@@ -1,0 +1,196 @@
+/* Loaded with the code-split comparison page, so search pages never ship it. */
+@reference '../styles.css';
+
+@layer components {
+  .compare-page {
+    /* Categorical slots 1–2 (dark steps), validated against #0a0a0a:
+       CVD ΔE 26.8, normal-vision ΔE 31.8, both ≥ 3:1. */
+    --series-solid: #3987e5;
+    --series-foldkit: #d95926;
+  }
+
+  .compare {
+    @apply mx-auto w-full max-w-[1080px] flex-1 px-7 pt-14 pb-20 max-[700px]:px-4 max-[700px]:pt-8;
+  }
+
+  .compare-hero h1 {
+    @apply m-0 text-[46px] leading-[1.18] font-semibold tracking-[-2.2px] max-[700px]:text-[34px] max-[700px]:tracking-[-1.6px];
+  }
+
+  .compare-hero h1 span {
+    @apply text-gray-400;
+  }
+
+  .compare-hero p {
+    @apply mt-5 max-w-[640px] text-[15px] leading-6 text-gray-300;
+  }
+
+  .compare a:not(.button) {
+    @apply underline decoration-gray-600 underline-offset-4 hover:decoration-gray-50;
+  }
+
+  .headline-stats {
+    @apply mt-10 grid grid-cols-3 gap-2.5 max-[700px]:grid-cols-1;
+  }
+
+  .headline-stat {
+    @apply flex flex-col gap-1.5 rounded-[7px] border border-[#262626] bg-gray-950 p-5;
+  }
+
+  .headline-stat strong {
+    @apply text-[28px] leading-8 font-semibold tracking-[-1px];
+  }
+
+  .headline-stat span {
+    @apply text-[13px] text-gray-400;
+  }
+
+  .compare-section {
+    @apply mt-16 max-[700px]:mt-12;
+  }
+
+  .compare-section h3 {
+    @apply mb-3 flex items-center gap-2 text-[15px] font-medium;
+  }
+
+  .compare-note {
+    @apply mt-12 text-gray-400;
+  }
+
+  .swatch {
+    @apply mr-2 inline-block size-2.5 rounded-[2px] align-[-1px];
+  }
+
+  .swatch-solid,
+  .bar-solid {
+    background: var(--series-solid);
+  }
+
+  .swatch-foldkit,
+  .bar-foldkit {
+    background: var(--series-foldkit);
+  }
+
+  .metric-table,
+  .concept-table {
+    @apply w-full border-collapse overflow-hidden rounded-md border border-gray-800 bg-gray-950 text-left text-[13px];
+  }
+
+  .metric-table caption {
+    @apply mb-3 text-left text-[12px] leading-5 text-gray-400;
+    caption-side: top;
+  }
+
+  .metric-table th,
+  .metric-table td,
+  .concept-table th,
+  .concept-table td {
+    @apply border-b border-[#222] px-4 py-3 align-top;
+  }
+
+  .metric-table tbody tr:last-child > *,
+  .concept-table tbody tr:last-child > * {
+    @apply border-b-0;
+  }
+
+  .metric-table thead th,
+  .concept-table thead th {
+    @apply text-[12px] font-normal whitespace-nowrap text-gray-400;
+  }
+
+  .metric-table tbody th {
+    @apply w-[30%] font-medium;
+  }
+
+  .metric-detail {
+    @apply mt-1 block text-[12px] font-normal text-gray-400;
+  }
+
+  .metric-table td {
+    @apply w-[28%] align-middle;
+  }
+
+  .bar-cell {
+    @apply flex items-center gap-2.5;
+  }
+
+  .bar-track {
+    @apply block min-w-0 flex-1;
+  }
+
+  .bar {
+    /* Thin mark, anchored at the baseline, rounded only at the data end. */
+    @apply block h-2 rounded-r-[4px];
+  }
+
+  .bar-value {
+    @apply w-[5.5rem] shrink-0 text-[13px] whitespace-nowrap text-gray-50 tabular-nums;
+  }
+
+  .metric-difference {
+    @apply text-[13px] whitespace-nowrap text-gray-300;
+  }
+
+  .concept-table tbody th {
+    @apply w-[18%] font-medium whitespace-nowrap;
+  }
+
+  .concept-table td {
+    @apply w-[41%] leading-5 text-gray-300;
+  }
+
+  .fact-list {
+    @apply m-0 grid grid-cols-2 gap-2.5 max-[700px]:grid-cols-1;
+  }
+
+  .fact-list > div,
+  .strength-columns > div {
+    @apply rounded-[7px] border border-[#262626] bg-gray-950 p-5;
+  }
+
+  .fact-list dt {
+    @apply mb-2 text-[14px] font-medium;
+  }
+
+  .fact-list dd {
+    @apply m-0 text-[13px] leading-5 text-gray-300;
+  }
+
+  .strength-columns {
+    @apply grid grid-cols-2 gap-2.5 max-[700px]:grid-cols-1;
+  }
+
+  .strength-columns ul,
+  .method-list {
+    @apply m-0 flex list-disc flex-col gap-2 pl-5 text-[13px] leading-5 text-gray-300 marker:text-gray-600;
+  }
+
+  .method-list code {
+    @apply rounded bg-gray-900 px-1.5 py-0.5 text-[12px] text-gray-50;
+  }
+
+  @media (max-width: 700px) {
+    .metric-table thead,
+    .concept-table thead {
+      @apply sr-only;
+    }
+
+    .metric-table tr,
+    .concept-table tr {
+      @apply block border-b border-[#222] py-2 last:border-b-0;
+    }
+
+    .metric-table th,
+    .metric-table td,
+    .concept-table th,
+    .concept-table td {
+      @apply block w-full border-0 py-1.5;
+    }
+
+    .metric-table td[data-label]::before,
+    .concept-table td[data-label]::before {
+      @apply mb-1 block text-[11px] text-gray-400;
+      content: attr(data-label);
+    }
+  }
+}

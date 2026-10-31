@@ -1,0 +1,10 @@
+node_modules
+dist
+*.local
+.alchemy
+.env
+infra/node_modules
+test-results
+playwright-report
+.wrangler
+hprof.json

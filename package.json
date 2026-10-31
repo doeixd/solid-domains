@@ -1,0 +1,38 @@
+{
+  "name": "solid-domains",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A Solid 2.0 recreation of the foldkit-domains search interaction",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite build && vite preview",
+    "typecheck": "tsc --noEmit && tsc -p infra/tsconfig.json",
+    "infra:install": "npm --prefix infra install",
+    "plan": "npm --prefix infra run plan",
+    "deploy": "npm --prefix infra run deploy",
+    "destroy": "npm --prefix infra run destroy",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm test && vite build",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@solidjs/web": "^2.0.0-rc.20",
+    "solid-js": "^2.0.0-rc.20"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.64.1",
+    "@solidjs/vite-plugin": "^3.0.0-next.35",
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
