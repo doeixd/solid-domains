@@ -29,23 +29,24 @@ export type Metric = {
   note?: string
 }
 
-type Measured = Record<string, number | null>
-const results: Partial<Record<Site, Measured>> = benchmark.results
-const spreads: Partial<Record<Site, Record<string, Spread>>> = benchmark.spread
-const measured = (site: Site, key: string) => results[site]?.[key] ?? null
+/** A measurement the benchmark records for every site; a misspelt key is a type error. */
+type Key = keyof typeof benchmark.results.solid
+const results: Record<Site, Record<Key, number | null>> = benchmark.results
+const spreads: Record<Site, Record<Key, Spread>> = benchmark.spread
+const measured = (site: Site, key: Key) => results[site][key]
 
-const timing = (label: string, detail: string, key: string, note?: string): Metric => ({
+const timing = (label: string, detail: string, key: Key, note?: string): Metric => ({
   label,
   detail,
   unit: 'ms',
   values: { solid: measured('solid', key), foldkit: measured('foldkit', key), plus: measured('plus', key) },
-  spreads: { solid: spreads.solid?.[key], foldkit: spreads.foldkit?.[key], plus: spreads.plus?.[key] },
+  spreads: { solid: spreads.solid[key], foldkit: spreads.foldkit[key], plus: spreads.plus[key] },
   note,
 })
 
 const kb = (bytes: number | null) => (bytes === null ? null : Math.round((bytes / 1024) * 10) / 10)
 
-const size = (label: string, detail: string, key: string, note?: string): Metric => ({
+const size = (label: string, detail: string, key: Key, note?: string): Metric => ({
   label,
   detail,
   unit: 'KB',
@@ -64,7 +65,7 @@ const DEVTOOLS_LINES = 4204 // non-blank lines of the published JavaScript
 const DEVTOOLS_KB = 22.9
 
 /** Loads each site's server answered with an error, of all it was asked for, and the loads timed. */
-export const failed = (site: Site) => ({
+const failed = (site: Site) => ({
   failed: benchmark.failures[site].length,
   attempts: benchmark.attempts[site],
   timed: benchmark.timed[site],
