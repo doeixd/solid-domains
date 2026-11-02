@@ -3,11 +3,13 @@
 
 @layer components {
   .compare-page {
-    /* Two series, validated against #0a0a0a: CVD ΔE 24.5 (deutan),
-       normal-vision ΔE 26.3, both ≥ 3:1. Blue and green sit close for
-       tritan vision (ΔE 4.9), so every bar also carries its series label. */
+    /* Three series, validated against #0a0a0a: worst CVD ΔE 11.4 (magenta
+       and green, deutan), normal-vision ΔE ≥ 20, all ≥ 3:1. Blue and green
+       sit close for tritan vision (ΔE 4.9), so every bar also carries its
+       series label. */
     --series-solid: #3987e5;
     --series-foldkit: #2f9e44;
+    --series-plus: #d6409f;
   }
 
   .compare {
@@ -72,6 +74,11 @@
     background: var(--series-foldkit);
   }
 
+  .swatch-plus,
+  .bar-plus {
+    background: var(--series-plus);
+  }
+
   .metric-table,
   .concept-table {
     @apply w-full border-collapse overflow-hidden rounded-md border border-gray-800 bg-gray-950 text-left text-[13px];
@@ -132,11 +139,11 @@
   }
 
   .psi-scores {
-    @apply grid grid-cols-2 gap-3 px-5 pt-4 pb-5;
+    @apply grid grid-cols-3 gap-2 px-5 pt-4 pb-5 max-[420px]:px-3;
   }
 
   .psi-score {
-    @apply flex flex-col items-center gap-1.5 rounded-md bg-[#111] px-3 py-4;
+    @apply flex flex-col items-center gap-1.5 rounded-md bg-[#111] px-2 py-4 text-center;
   }
 
   .score-ring {
@@ -164,6 +171,10 @@
 
   .score-ring-foldkit {
     stroke: var(--series-foldkit);
+  }
+
+  .score-ring-plus {
+    stroke: var(--series-plus);
   }
 
   .score-ring text {
@@ -197,7 +208,7 @@
 
   .psi-metrics thead th:not(:first-child),
   .psi-metrics td {
-    @apply w-[30%] text-right;
+    @apply w-[22%] text-right;
   }
 
   .psi-metrics thead .swatch {
@@ -226,6 +237,24 @@
 
   .psi-metrics tbody tr:last-child > * {
     @apply border-b-0;
+  }
+
+  /* Three sites' columns do not fit a phone beside the labels: the header
+     names wrap, and the long metric names are left to screen readers (the
+     abbreviation keeps its title). */
+  @media (max-width: 520px) {
+    .psi-metrics th,
+    .psi-metrics td {
+      @apply px-2;
+    }
+
+    .psi-metrics thead th {
+      @apply text-[10px] tracking-normal whitespace-normal;
+    }
+
+    .psi-metric-label {
+      @apply sr-only;
+    }
   }
 
   .psi-card-footer {
@@ -282,6 +311,26 @@
   }
 
   .metric-difference {
+    @apply text-[13px] text-gray-300;
+  }
+
+  .metric-difference-line {
+    @apply block leading-5;
+  }
+
+  .metric-difference-site {
+    @apply block text-[11px] text-gray-400;
+  }
+
+  .bar-missing {
+    @apply text-[12px] text-gray-400 italic;
+  }
+
+  .headline-port {
+    @apply flex items-baseline justify-between gap-3;
+  }
+
+  .headline-stat .headline-port-name {
     @apply text-[13px] whitespace-nowrap text-gray-300;
   }
 
@@ -298,19 +347,23 @@
      label into a narrow column. */
   @media (min-width: 701px) {
     .metric-table tbody th {
-      @apply w-[30%];
+      @apply w-[25%];
     }
 
     .metric-table td {
-      @apply w-[28%];
+      @apply w-[19%];
+    }
+
+    .metric-table td.metric-difference {
+      @apply w-[18%];
     }
 
     .concept-table tbody th {
-      @apply w-[18%] whitespace-nowrap;
+      @apply w-[13%];
     }
 
     .concept-table td {
-      @apply w-[41%];
+      @apply w-[29%];
     }
   }
 
@@ -319,7 +372,11 @@
   }
 
   .strength-columns {
-    @apply grid grid-cols-2 gap-2.5 max-[700px]:grid-cols-1;
+    @apply grid grid-cols-3 gap-2.5 max-[900px]:grid-cols-1;
+  }
+
+  .strength-costs {
+    @apply mt-5 mb-2 text-[12px] font-medium tracking-wide text-gray-400 uppercase;
   }
 
   .strength-columns ul,

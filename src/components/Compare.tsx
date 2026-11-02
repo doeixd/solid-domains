@@ -4,6 +4,13 @@ import { For, Show } from 'solid-js'
 import {
   FOLDKIT_REPO,
   FOLDKIT_SITE,
+  failureStatuses,
+  failureSummary,
+  PLUS_REPO,
+  plusCosts,
+  PLUS_SITE,
+  SITES,
+  type Site,
   type Metric,
   benchmark,
   caveats,
@@ -22,37 +29,43 @@ import './compare.css'
 
 const format = (value: number, unit: Metric['unit']) => `${value.toLocaleString('en-US')} ${unit}`
 
-type Spread = [number | null, number | null]
+type Spread = ReadonlyArray<number | null>
 
 const overlaps = (a?: Spread, b?: Spread) =>
-  !!a && !!b && a[0] !== null && a[1] !== null && b[0] !== null && b[1] !== null && a[0] <= b[1] && b[0] <= a[1]
+  !!a && !!b && a[0] != null && a[1] != null && b[0] != null && b[1] != null && a[0] <= b[1] && b[0] <= a[1]
 
 /**
- * Honest both ways: says "smaller" or "larger" depending on the numbers, and
- * calls a timing difference noise when the two interquartile ranges overlap.
+ * A port against the original, honest both ways: says "smaller" or "larger"
+ * depending on the numbers, and calls a timing difference noise when the two
+ * interquartile ranges overlap.
  */
-const difference = (metric: Metric) => {
-  const { solid, foldkit, unit } = metric
-  if (!solid || !foldkit) return '—'
-  if (overlaps(metric.solidSpread, metric.foldkitSpread)) return 'within run-to-run variation'
-  if (Math.abs(solid - foldkit) / Math.max(solid, foldkit) < 0.05) return 'about the same'
-  const better = solid < foldkit
+const difference = (metric: Metric, site: Exclude<Site, 'foldkit'>) => {
+  const { unit } = metric
+  const port = metric.values[site]
+  const foldkit = metric.values.foldkit
+  if (port === null || foldkit === null) return 'not measured the same way'
+  if (port === 0) return 'none'
+  if (overlaps(metric.spreads?.[site], metric.spreads?.foldkit)) return 'within run-to-run variation'
+  if (Math.abs(port - foldkit) / Math.max(port, foldkit) < 0.05) return 'about the same'
+  const better = port < foldkit
   const [less, more] = unit === 'ms' ? ['faster', 'slower'] : unit === 'lines' ? ['fewer', 'more'] : ['smaller', 'larger']
   if (better) {
     // "20% faster" = takes 20% less time; "2.4× faster" = Foldkit takes 2.4× as long.
-    return foldkit / solid >= 1.95 ? `${(foldkit / solid).toFixed(1)}× ${less}` : `${Math.round((1 - solid / foldkit) * 100)}% ${less}`
+    return foldkit / port >= 1.95 ? `${(foldkit / port).toFixed(1)}× ${less}` : `${Math.round((1 - port / foldkit) * 100)}% ${less}`
   }
-  return solid / foldkit >= 1.95 ? `${(solid / foldkit).toFixed(1)}× ${more}` : `${Math.round((solid / foldkit - 1) * 100)}% ${more}`
+  return port / foldkit >= 1.95 ? `${(port / foldkit).toFixed(1)}× ${more}` : `${Math.round((port / foldkit - 1) * 100)}% ${more}`
 }
 
-const rangeText = (spread?: Spread) =>
-  spread && spread[0] !== null && spread[1] !== null ? `${spread[0]}–${spread[1]}` : undefined
+const PORTS = SITES.filter((side): side is { site: Exclude<Site, 'foldkit'>; name: string } => side.site !== 'foldkit')
 
-const Bar = (props: { value: number; max: number; unit: Metric['unit']; series: 'solid' | 'foldkit'; spread?: Spread }) => (
-  <div class="bar-cell" title={`${props.series === 'solid' ? 'Solid 2.0' : 'Foldkit'}: ${format(props.value, props.unit)}`}>
+const rangeText = (spread?: Spread) =>
+  spread && spread[0] != null && spread[1] != null ? `${spread[0]}–${spread[1]}` : undefined
+
+const Bar = (props: { value: number; max: number; unit: Metric['unit']; series: Site; name: string; spread?: Spread }) => (
+  <div class="bar-cell" title={`${props.name}: ${format(props.value, props.unit)}`}>
     {/* The track is the full scale, so bar widths are true proportions. */}
     <span class="bar-track" aria-hidden="true">
-      <span class={['bar', `bar-${props.series}`]} style={{ width: `${Math.max(1, (props.value / props.max) * 100)}%` }} />
+      <span class={['bar', `bar-${props.series}`]} style={{ width: props.value === 0 ? '0' : `${Math.max(1, (props.value / props.max) * 100)}%` }} />
     </span>
     <span class="bar-value">
       {format(props.value, props.unit)}
@@ -60,6 +73,8 @@ const Bar = (props: { value: number; max: number; unit: Metric['unit']; series: 
     </span>
   </div>
 )
+
+const largest = (metric: Metric) => Math.max(...SITES.map(({ site }) => metric.values[site] ?? 0))
 
 const MetricTable = (props: { title: string; caption: string; metrics: Metric[] }) => (
   <section class="compare-section" aria-labelledby={`${props.title}-heading`}>
@@ -69,15 +84,15 @@ const MetricTable = (props: { title: string; caption: string; metrics: Metric[] 
       <thead>
         <tr>
           <th scope="col">Metric</th>
-          <th scope="col">
-            <span class="swatch swatch-solid" aria-hidden="true" />
-            Solid 2.0
-          </th>
-          <th scope="col">
-            <span class="swatch swatch-foldkit" aria-hidden="true" />
-            Foldkit
-          </th>
-          <th scope="col">Solid vs Foldkit</th>
+          <For each={SITES}>
+            {side => (
+              <th scope="col">
+                <span class={['swatch', `swatch-${side.site}`]} aria-hidden="true" />
+                {side.name}
+              </th>
+            )}
+          </For>
+          <th scope="col">Against Foldkit</th>
         </tr>
       </thead>
       <tbody>
@@ -89,25 +104,34 @@ const MetricTable = (props: { title: string; caption: string; metrics: Metric[] 
                 <span class="metric-detail">{metric.detail}</span>
                 <Show when={metric.note}>{note => <span class="metric-note">Note: {note()}</span>}</Show>
               </th>
-              <td data-label="Solid 2.0">
-                <Bar
-                  value={metric.solid}
-                  max={Math.max(metric.solid, metric.foldkit)}
-                  unit={metric.unit}
-                  series="solid"
-                  spread={metric.solidSpread}
-                />
+              <For each={SITES}>
+                {side => (
+                  <td data-label={side.name}>
+                    <Show
+                      when={metric.values[side.site] !== null}
+                      fallback={<span class="bar-missing">not measured</span>}
+                    >
+                      <Bar
+                        value={metric.values[side.site] ?? 0}
+                        max={largest(metric)}
+                        unit={metric.unit}
+                        series={side.site}
+                        name={side.name}
+                        spread={metric.spreads?.[side.site]}
+                      />
+                    </Show>
+                  </td>
+                )}
+              </For>
+              <td class="metric-difference" data-label="Against Foldkit">
+                <For each={PORTS}>
+                  {side => (
+                    <span class="metric-difference-line">
+                      <span class="metric-difference-site">{side.name}</span> {difference(metric, side.site)}
+                    </span>
+                  )}
+                </For>
               </td>
-              <td data-label="Foldkit">
-                <Bar
-                  value={metric.foldkit}
-                  max={Math.max(metric.solid, metric.foldkit)}
-                  unit={metric.unit}
-                  series="foldkit"
-                  spread={metric.foldkitSpread}
-                />
-              </td>
-              <td class="metric-difference">{difference(metric)}</td>
             </tr>
           )}
         </For>
@@ -126,11 +150,6 @@ const PSI_METRICS: Array<{ key: Exclude<PsiKey, 'score'>; short: string; label: 
   { key: 'si', short: 'SI', label: 'Speed Index' },
 ]
 
-const PSI_SIDES = [
-  { site: 'solid', name: 'Solid 2.0' },
-  { site: 'foldkit', name: 'Foldkit' },
-] as const
-
 const PSI_FORM_FACTORS = {
   mobile: { title: 'Mobile', device: 'Emulated Moto G Power, slow 4G' },
   desktop: { title: 'Desktop', device: 'Emulated desktop, light throttling' },
@@ -141,10 +160,11 @@ const psiNumber = (key: PsiKey, value: number) =>
 const psiUnit = (key: PsiKey) => (key === 'tbt' ? ' ms' : key === 'score' || key === 'cls' ? '' : ' s')
 const psiFormat = (key: PsiKey, value: number) => `${psiNumber(key, value)}${psiUnit(key)}`
 
-/** Median, plus the range when the runs disagree. */
+/** Median (of the middle two, for an even count), plus the range when the runs disagree. */
 const psiCell = (runs: PsiRun[], key: PsiKey) => {
   const values = runs.map(run => run[key]).sort((a, b) => a - b)
-  const median = values[Math.floor(values.length / 2)]!
+  const middle = Math.floor(values.length / 2)
+  const median = values.length % 2 ? values[middle]! : (values[middle - 1]! + values[middle]!) / 2
   const [low, high] = [values[0]!, values.at(-1)!]
   return {
     value: median,
@@ -154,7 +174,7 @@ const psiCell = (runs: PsiRun[], key: PsiKey) => {
 }
 
 /** A Lighthouse-style ring, in the series color: identity, not a grade. */
-const ScoreRing = (props: { score: number; series: 'solid' | 'foldkit'; name: string }) => (
+const ScoreRing = (props: { score: number; series: Site; name: string }) => (
   <svg class="score-ring" viewBox="0 0 64 64" role="img" aria-label={`${props.name}: performance score ${props.score}`}>
     <circle class="score-ring-track" cx="32" cy="32" r="28" />
     <circle
@@ -182,7 +202,7 @@ const PsiCard = (props: { formFactor: 'mobile' | 'desktop' }) => {
       </header>
 
       <div class="psi-scores">
-        <For each={PSI_SIDES}>
+        <For each={SITES}>
           {side => (
             <div class="psi-score">
               <ScoreRing score={psiCell(data()[side.site], 'score').value} series={side.site} name={side.name} />
@@ -192,7 +212,7 @@ const PsiCard = (props: { formFactor: 'mobile' | 'desktop' }) => {
               </span>
               <span class="psi-score-range">
                 {psiCell(data()[side.site], 'score').range
-                  ? `runs ${psiCell(data()[side.site], 'score').range}`
+                  ? `${data()[side.site].length} runs, ${psiCell(data()[side.site], 'score').range}`
                   : `all ${data()[side.site].length} runs`}
               </span>
             </div>
@@ -202,12 +222,12 @@ const PsiCard = (props: { formFactor: 'mobile' | 'desktop' }) => {
 
       <table class="psi-metrics">
         <caption class="sr-only">
-          {info().title} Lighthouse metrics, median of {data().solid.length} runs per site; lower is better.
+          {info().title} Lighthouse metrics, median of the runs per site; lower is better.
         </caption>
         <thead>
           <tr>
             <th scope="col">Metric</th>
-            <For each={PSI_SIDES}>
+            <For each={SITES}>
               {side => (
                 <th scope="col">
                   <span class={['swatch', `swatch-${side.site}`]} aria-hidden="true" />
@@ -225,7 +245,7 @@ const PsiCard = (props: { formFactor: 'mobile' | 'desktop' }) => {
                   <abbr title={metric.label}>{metric.short}</abbr>
                   <span class="psi-metric-label">{metric.label}</span>
                 </th>
-                <For each={PSI_SIDES}>
+                <For each={SITES}>
                   {side => (
                     <td>
                       {psiCell(data()[side.site], metric.key).median}
@@ -242,10 +262,13 @@ const PsiCard = (props: { formFactor: 'mobile' | 'desktop' }) => {
       </table>
 
       <footer class="psi-card-footer">
-        <p>Median of {data().solid.length} runs, with the range when runs differed.</p>
+        <p>
+          Median of {SITES.map(side => `${data()[side.site].length} ${side.name}`).join(', ')} runs, with the range
+          when runs differed.
+        </p>
         <div class="psi-report-links">
           Reports
-          <For each={PSI_SIDES}>
+          <For each={SITES}>
           {side => (
             <span class="psi-reports">
               {side.name}
@@ -263,20 +286,50 @@ const PsiCard = (props: { formFactor: 'mobile' | 'desktop' }) => {
           )}
           </For>
         </div>
+        <For each={SITES.filter(side => (pageSpeed.failedRuns[side.site]?.[props.formFactor].length ?? 0) > 0)}>
+          {side => (
+            <div class="psi-report-links">
+              {side.name}, left out (measured error 1102)
+              <span class="psi-reports">
+                <For each={pageSpeed.failedRuns[side.site]?.[props.formFactor]}>
+                  {(id, n) => (
+                    <a
+                      href={psiReportUrl(side.site, props.formFactor, id)}
+                      aria-label={`${side.name} ${info().title.toLowerCase()} failed report ${n() + 1}`}
+                    >
+                      {n() + 1}
+                    </a>
+                  )}
+                </For>
+              </span>
+            </div>
+          )}
+        </For>
       </footer>
     </article>
   )
 }
 
+/** Each port against the original, for one metric. */
 const HeadlineStat = (props: { metric: Metric; noun: string }) => (
   <div class="headline-stat">
-    <strong>{difference(props.metric)}</strong>
-    <span>{props.noun}</span>
+    <span>{props.noun}, against Foldkit</span>
+    <For each={PORTS}>
+      {side => (
+        <span class="headline-port">
+          <span class="headline-port-name">
+            <span class={['swatch', `swatch-${side.site}`]} aria-hidden="true" />
+            {side.name}
+          </span>
+          <strong>{difference(props.metric, side.site)}</strong>
+        </span>
+      )}
+    </For>
   </div>
 )
 
 export default function Compare() {
-  useHead({ tag: 'title', props: { children: 'Solid 2.0 vs Foldkit | Domains' } })
+  useHead({ tag: 'title', props: { children: 'Solid 2.0 vs Foldkit vs Foldkit Plus | Domains' } })
   const isMeasured = benchmark.runs > 0
 
   return (
@@ -300,13 +353,15 @@ export default function Compare() {
           <h1>
             Same app,
             <br />
-            <span>two architectures.</span>
+            <span>three architectures.</span>
           </h1>
           <p>
             This site recreates{' '}
             <a href={FOLDKIT_REPO}>foldkit-domains</a>, an Elm-style app built with Foldkit and Effect, using Solid 2.0
-            primitives: the same search, filters, and cart over the same sample data, both on Cloudflare Workers.
-            Here is what changed, measured, and <a href="#caveats">where the two are not like for like</a>.
+            primitives. <a href={PLUS_REPO}>Foldkit Plus</a>, a set of packages on top of Foldkit by this site’s
+            author, ports the same app a second way. All three have the same search, filters, and cart over the same
+            sample data, on Cloudflare Workers. Here is what changed, measured, and{' '}
+            <a href="#caveats">where they are not like for like</a>.
           </p>
           <Show when={isMeasured}>
             <div class="headline-stats">
@@ -323,7 +378,7 @@ export default function Compare() {
         >
           <MetricTable
             title="Speed"
-            caption={`Median (and interquartile range) of ${benchmark.runs} cold loads of /?q=${benchmark.query} per site, alternating between sites, measured ${benchmark.measuredAt}. Lower is better.`}
+            caption={`Median (and interquartile range) of ${benchmark.runs} cold loads of /?q=${benchmark.query} per site, rotating between sites, measured ${benchmark.measuredAt}. Lower is better. Loads a server failed are not timed: ${failureSummary()}`}
             metrics={speedMetrics}
           />
           <MetricTable
@@ -336,8 +391,8 @@ export default function Compare() {
           <h2 id="pagespeed-heading">PageSpeed Insights</h2>
           <p class="psi-intro">
             Google’s Lighthouse lab test (version {pageSpeed.lighthouse}) of /?q=sunbeam on each live site, run{' '}
-            {pageSpeed.measuredAt}. A coarser instrument than the tables above: read the notes below before comparing
-            scores.
+            {pageSpeed.measuredAt} (Foldkit Plus {pageSpeed.plusMeasuredAt}). A coarser instrument than the tables
+            above: read the notes below before comparing scores.
           </p>
           <div class="psi-grid">
             <PsiCard formFactor="mobile" />
@@ -368,6 +423,7 @@ export default function Compare() {
               <tr>
                 <th scope="col">Concern</th>
                 <th scope="col">Foldkit + Effect</th>
+                <th scope="col">Foldkit Plus</th>
                 <th scope="col">Solid 2.0</th>
               </tr>
             </thead>
@@ -377,6 +433,7 @@ export default function Compare() {
                   <tr>
                     <th scope="row">{row.concept}</th>
                     <td data-label="Foldkit">{row.foldkit}</td>
+                    <td data-label="Foldkit Plus">{row.plus}</td>
                     <td data-label="Solid 2.0">{row.solid}</td>
                   </tr>
                 )}
@@ -399,6 +456,19 @@ export default function Compare() {
             </div>
             <div>
               <h3>
+                <span class="swatch swatch-plus" aria-hidden="true" />
+                Foldkit Plus
+              </h3>
+              <ul>
+                <For each={strengths.plus}>{item => <li>{item}</li>}</For>
+              </ul>
+              <h4 class="strength-costs">What it costs</h4>
+              <ul>
+                <For each={plusCosts}>{item => <li>{item}</li>}</For>
+              </ul>
+            </div>
+            <div>
+              <h3>
                 <span class="swatch swatch-solid" aria-hidden="true" />
                 Solid 2.0
               </h3>
@@ -413,21 +483,33 @@ export default function Compare() {
           <h2 id="method-heading">How this was measured</h2>
           <ul class="method-list">
             <li>
-              Both sites as deployed: <a href={FOLDKIT_SITE}>{FOLDKIT_SITE.replace('https://', '')}</a> and this one,
-              from the same machine and network, in {benchmark.environment?.browser ?? 'headless Chrome'} at{' '}
+              All three sites as deployed: <a href={FOLDKIT_SITE}>{FOLDKIT_SITE.replace('https://', '')}</a>,{' '}
+              <a href={PLUS_SITE}>{PLUS_SITE.replace('https://', '')}</a>, and this one, from the same machine and
+              network, in {benchmark.environment?.browser ?? 'headless Chrome'} at{' '}
               {benchmark.environment?.viewport ?? '1280×900'}.
             </li>
             <li>
-              Each run is a fresh browser context (cold cache), alternating which site goes first. Milestones are
+              Each run is a fresh browser context (cold cache), rotating which site goes first. Milestones are
               recorded with a MutationObserver and counted no earlier than first paint.
             </li>
             <li>
-              Neither backend adds artificial latency. Both apps debounce typing by 150 ms, which is included in the
-              search timing.
+              No backend adds artificial latency. All three apps debounce typing by 150 ms, which is included in
+              the search timing.
             </li>
             <li>Sizes: each file the page loaded, fetched again asking for brotli and counted as received.</li>
             <li>
-              Reproduce with <code>node scripts/benchmark.mjs</code>.
+              A load the server answered with an error is not timed. It is counted and tried again at once, up to
+              ten times; a site that fails all ten has no timed load in that round. {failureSummary()}
+              <Show when={failureStatuses.length > 0}>
+                {' '}
+                Failures were answered with {failureStatuses.join(', ')}
+                {failureStatuses.every(status => status === 503) ? ' (error 1102: the Worker exceeded its CPU limit).' : '.'}
+              </Show>
+            </li>
+            <li>
+              Reproduce with <code>node scripts/benchmark.mjs</code>; count lines with{' '}
+              <code>node scripts/count-lines.mjs . &lt;foldkit-domains&gt; &lt;domains-plus&gt;</code>, given checkouts
+              of the other two.
             </li>
           </ul>
         </section>
@@ -441,6 +523,10 @@ export default function Compare() {
         </a>
         <a href={FOLDKIT_REPO}>
           Foldkit original
+          <ArrowUpRightIcon />
+        </a>
+        <a href={PLUS_REPO}>
+          Foldkit Plus port
           <ArrowUpRightIcon />
         </a>
       </footer>

@@ -11,7 +11,8 @@ npm run build          # dist/client (assets) + dist/server/server.js (Fetch han
 npm test               # Vitest: catalog ranges, filters/sorts, cart pricing, backend + REST validation
 npm run check          # typecheck + tests + build
 npm run test:e2e       # Playwright (installed Chrome) against the production build
-node scripts/benchmark.mjs            # both live sites, interleaved → src/data/benchmark.json
+node scripts/benchmark.mjs            # all three live sites, interleaved → src/data/benchmark.json
+node scripts/count-lines.mjs . <foldkit-domains> <domains-plus>  # the Code table's line counts
 node scripts/profile-ssr.mjs [path]   # server render time of the built handler (Node)
 node scripts/profile-hydration.mjs [url ...]  # hydration + long tasks, 1× and 4× CPU
 ```
@@ -22,57 +23,63 @@ Requires Node 22.12+ (Solid 2.0 RC, `@solidjs/vite-plugin@next` in start mode, V
 
 ## How it compares
 
-Both versions as deployed, median and interquartile range of 15 cold loads of `/?q=sunbeam` per site, alternating between sites, in Chrome 156.0.8078.74 (headless) at 1280×900, from one machine on 2026-10-31. Lower is better. A difference whose ranges overlap is reported as within run-to-run variation. The live page is [/compare](https://solid-domains.doeixd.workers.dev/compare); regenerate the data with `node scripts/benchmark.mjs`.
+Three versions as deployed: this one, the Foldkit original, and [a port of the original to Foldkit Plus](https://github.com/doeixd/foldkit-plus/tree/main/examples/foldkit/domains-plus), a set of packages on top of Foldkit by this repo's author. Median and interquartile range of 15 cold loads of `/?q=sunbeam` per site, rotating which site goes first, in Chrome 156.0.8078.74 (headless) at 1280×900, from one machine on 2026-11-02. Lower is better. A difference whose ranges overlap is reported as within run-to-run variation. The live page is [/compare](https://solid-domains.doeixd.workers.dev/compare); regenerate the data with `node scripts/benchmark.mjs`.
 
-| | Solid 2.0 (this repo) | Foldkit original | Solid vs Foldkit |
-|---|--:|--:|---|
-| **Speed**: median (interquartile range) | | | |
-| Time to first byte ¹ | 55 ms (50–68) | 56 ms (49–60) | within run-to-run variation |
-| First paint | 220 ms (200–240) | 216 ms (196–244) | within run-to-run variation |
-| Top Results priced ¹ | 220 ms (200–240) | 831 ms (770–1008) | 3.8× faster |
-| First page priced (60 of 556) | 288 ms (271–305) | 929 ms (849–1110) | 3.2× faster |
-| New search (keystroke → prices, incl. 150 ms debounce) | 242 ms (227–261) | 312 ms (301–342) | 22% faster |
-| **Size** (as served, brotli) | | | |
-| JavaScript ² | 79.2 KB | 214.9 KB | 2.7× smaller |
-| HTML ¹ | 5.4 KB | 4.5 KB | 20% larger |
-| CSS | 8.9 KB | 8.0 KB | 11% larger |
-| Requests at load | 7 | 9 | 2 fewer |
-| **Code** (counted the same way for both) | | | |
-| Application code (non-blank TS/TSX, excl. tests, fixtures, Story files, the TLD list) ³ | 2,664 lines | 3,280 lines | 19% fewer |
-| Stylesheet ³ | 933 lines | 710 lines | 31% more |
+A load the server answers with an error is not timed; it is counted and tried again, up to ten times in a row. Foldkit and Solid failed none of their 15. **Foldkit Plus failed 107 of 117**, every one a 503 (error 1102: its Worker ran out of CPU on the free plan), and in five rounds all ten tries failed, so its column is the median of the **10 loads that succeeded**. Sent alone, 10 s apart, right after the run, 29 of 30 requests to it failed too.
+
+| | Solid 2.0 (this repo) | Foldkit original | Foldkit Plus port | Solid vs Foldkit | Foldkit Plus vs Foldkit |
+|---|--:|--:|--:|---|---|
+| **Speed**: median (interquartile range) | | | | | |
+| Time to first byte ¹ | 64 ms (54–69) | 52 ms (48–60) | 1,292 ms (1195–1312) | within run-to-run variation | 24.8× slower |
+| First paint | 188 ms (168–212) | 180 ms (164–192) | 1,404 ms (1320–1420) | within run-to-run variation | 7.8× slower |
+| Top Results priced ¹ | 188 ms (168–212) | 619 ms (607–649) | 1,404 ms (1320–1420) | 3.3× faster | 2.3× slower |
+| First 60 names priced ² | 219 ms (198–234) | 682 ms (659–707) | 1,404 ms (1320–1420) | 3.1× faster | 2.1× slower |
+| New search (keystroke → prices, incl. 150 ms debounce) | 213 ms (211–226) | 251 ms (248–258) | 269 ms (259–292) | 15% faster | 7% slower |
+| **Size** (as served, brotli) | | | | | |
+| JavaScript ³ | 79.3 KB | 214.8 KB | 289.1 KB | 2.7× smaller | 35% larger |
+| HTML ¹ | 5.4 KB | 4.5 KB | 27.7 KB | 20% larger | 6.2× larger |
+| CSS | 8.9 KB | 8.0 KB | none (inline in the HTML) | 11% larger | none |
+| HTML and CSS | 14.3 KB | 12.5 KB | 27.7 KB | 14% larger | 2.2× larger |
+| Requests at load | 7 | 9 | 4 | 2 fewer | 5 fewer |
+| **Code** (counted the same way for all three) ⁴ | | | | | |
+| Application code (non-blank TS/TSX, excl. tests, fixtures, Story files, the TLD list) | 2,664 lines | 3,280 lines | 2,928 lines | 19% fewer | 11% fewer |
+| Style code: CSS, or `style.ts` for Foldkit Plus | 933 lines | 710 lines | 1,126 lines | 31% more | 59% more |
 
 Not apples to apples, as on the comparison page:
 
-1. **Different work per page.** Solid renders prices on the server (about 37 rows; 5–12 ms of Worker CPU per search page, from `wrangler tail`); Foldkit renders a shell and fetches prices in the browser over RPC. First byte, HTML size, and "prices on screen" reflect that choice, not just framework speed. Solid's HTML carries the priced rows, its hydration keys, and the loader data the browser adopts; the loader data is packed one array per field (`packDomains`). In the browser, Solid's work before first paint (parse, style, layout, script: about 69 ms traced) is less than Foldkit's (about 77 ms; its inline pre-hydration script alone runs about 27 ms).
-2. **DevTools.** Foldkit ships its DevTools overlay in production by design: an estimated 22.9 KB brotli of its JavaScript (its `foldkit/devTools` modules plus the `@foldkit/devtools` overlay, about 4,200 lines of published JavaScript, bundled on their own without shared libraries), so about 192 KB without it. Solid's dev toolbar (`@solidjs/start-devtools`) is development-only by design.
-3. **Inspector.** Solid's request Inspector is app code: 186 lines of TS/TSX and 78 of CSS are in its counts (its styles load only when it opens). Foldkit's DevTools is a library, not counted.
-4. **Before hydration.** Foldkit's bootstrap script makes the input fully work before its bundle runs; Solid's captures clicks and typing and replays them when it hydrates.
-5. **Hosting.** Foldkit is served from a custom domain on a Cloudflare zone, Solid from workers.dev. Both are Cloudflare Workers.
-6. **Sizes** are what the server sends when asked for brotli; Chrome actually receives zstd from Cloudflare.
-7. **Scope.** One machine and network, desktop Chrome headless, no CPU or network throttling: phone-class devices are not measured.
+1. **Different work per page.** Solid and Foldkit Plus render prices on the server; Foldkit renders a shell and fetches prices in the browser over RPC. Solid's server spends 5–12 ms of Worker CPU per search page (from `wrangler tail`). Foldkit Plus's reads every price the page shows before rendering it, which costs 150–530 ms of CPU per request, mostly Foldkit's experimental server re-parsing its own output (domains-plus issue #411); on Workers' free plan, which allows 10 ms, that is the error 1102 above. First byte, HTML size, and "prices on screen" reflect that choice, not just framework speed. Solid's HTML carries the priced rows, its hydration keys, and the loader data the browser adopts; the loader data is packed one array per field (`packDomains`). Foldkit Plus's also carries its whole theme stylesheet inline (about 362 KB uncompressed). In the browser, Solid's work before first paint (parse, style, layout, script: about 69 ms traced) is less than Foldkit's (about 77 ms; its inline pre-hydration script alone runs about 27 ms).
+2. **Counting names.** Foldkit and Solid count in 60-name pages, so "First 60 names priced" is their "60 of 556 domains checked". Foldkit Plus reads the rows in view instead; its server's first count is 66, already in the HTML, so that milestone lands at its first paint.
+3. **DevTools.** Foldkit ships its DevTools overlay in production by design: an estimated 22.9 KB brotli of its JavaScript (its `foldkit/devTools` modules plus the `@foldkit/devtools` overlay, about 4,200 lines of published JavaScript, bundled on their own without shared libraries), so about 192 KB without it. Foldkit Plus ships the same DevTools, plus package code a page that only reads never runs (Remote's writes, outbox and live modules). Solid's dev toolbar (`@solidjs/start-devtools`) is development-only by design.
+4. **Code counted.** `node scripts/count-lines.mjs . <foldkit-domains> <domains-plus>` counts non-blank lines under `src/`. Solid's count excludes this comparison page, Foldkit Plus's its generated icon paths (`iconData.ts`, 157 lines; the others' hand-written icons are counted). Solid's request Inspector is app code: 186 lines of TS/TSX and 78 of CSS are in its counts. Foldkit's DevTools is a library, not counted. Foldkit Plus leans on its own packages, not counted: Remote for prices, Site for the route, Mirror for the address and the cart's cookie, SSR, and Mixins for the WindowList, dropdowns and sheets. It has no CSS file: its look is `style.ts`, TypeScript written with foldkit-mixins' Style, counted as style code.
+5. **Before hydration.** Foldkit's bootstrap script makes the input fully work before its bundle runs; Solid's captures clicks and typing and replays them when it hydrates; Foldkit Plus keeps the typing and replays it at boot.
+6. **Parity.** Foldkit Plus passes 40 of upstream's 67 Playwright tests in Chromium; most of the rest test what it does differently by design (answering typing before its bundle, waiting in the browser for prices its server already read, counting 60-name pages).
+7. **Hosting.** Foldkit is served from a custom domain on a Cloudflare zone, Solid and Foldkit Plus from workers.dev. All three are Cloudflare Workers.
+8. **Sizes** are what the server sends when asked for brotli; Chrome actually receives zstd from Cloudflare.
+9. **Scope.** One machine and network, desktop Chrome headless, no CPU or network throttling: phone-class devices are not measured.
 
 ### PageSpeed Insights
 
-Google's Lighthouse 13.6.0 lab test of `/?q=sunbeam` on each live site, run from [pagespeed.web.dev](https://pagespeed.web.dev) on 2026-10-31. Medians of 3 runs per site and form factor, with the range across runs in parentheses where it varied:
+Google's Lighthouse 13.6.0 lab test of `/?q=sunbeam` on each live site, run from [pagespeed.web.dev](https://pagespeed.web.dev) on 2026-10-31 (Foldkit Plus on 2026-11-02). Medians of 3 runs per site and form factor (Foldkit Plus mobile: 2), with the range across runs in parentheses where it varied:
 
-| | Solid 2.0 mobile | Foldkit mobile | Solid 2.0 desktop | Foldkit desktop |
-|---|--:|--:|--:|--:|
-| Performance score (higher is better) | 100 | 95 (93–98) | 100 | 74 (64–74) |
-| First Contentful Paint | 0.9 s | 0.8 s | 0.2 s | 0.2 s |
-| Largest Contentful Paint | 0.9 s | 0.8 s | 0.2 s | 0.2 s |
-| Total Blocking Time | 50 ms (20–50) | 260 ms (100–310) | 10 ms (10–20) | 130 ms (130–300) |
-| Cumulative Layout Shift | 0 | 0 (0–0.082) | 0 | 0.771 |
-| Speed Index | 0.9 s (0.9–2.4) | 1.6 s (1.5–1.6) | 0.3 s (0.2–0.3) | 0.7 s (0.7–0.8) |
+| | Solid 2.0 mobile | Foldkit mobile | Foldkit Plus mobile | Solid 2.0 desktop | Foldkit desktop | Foldkit Plus desktop |
+|---|--:|--:|--:|--:|--:|--:|
+| Performance score (higher is better) | 100 | 95 (93–98) | 84 (73–95) | 100 | 74 (64–74) | 70 (61–90) |
+| First Contentful Paint | 0.9 s | 0.8 s | 0.9 s | 0.2 s | 0.2 s | 0.3 s |
+| Largest Contentful Paint | 0.9 s | 0.8 s | 1.0 s (0.9–1.1) | 0.2 s | 0.2 s | 0.3 s |
+| Total Blocking Time | 50 ms (20–50) | 260 ms (100–310) | 205 ms (180–230) | 10 ms (10–20) | 130 ms (130–300) | 240 ms (150–310) |
+| Cumulative Layout Shift | 0 | 0 (0–0.082) | 0.323 (0.008–0.637) | 0 | 0.771 | 0.787 (0–0.838) |
+| Speed Index | 0.9 s (0.9–2.4) | 1.6 s (1.5–1.6) | 3.6 s (3.2–4.1) | 0.3 s (0.2–0.3) | 0.7 s (0.7–0.8) | 1.5 s (1.2–1.7) |
 
 Caveats:
 
-- **Lab, not real users.** Neither site has enough traffic for Chrome UX Report field data, so there is no Core Web Vitals assessment for either.
+- **Lab, not real users.** None of the three sites has enough traffic for Chrome UX Report field data, so there is no Core Web Vitals assessment for any.
 - **Simulated.** Mobile emulates a Moto G Power on slow 4G with a slowed CPU; desktop uses lighter throttling. Lighthouse models throttled timings from an unthrottled load, from Google's servers rather than the machine used for the table above.
-- **Coarse and noisy.** Times are shown rounded to 0.1 s, so paint differences under about 100 ms do not register, and scores move several points between identical runs.
-- **Foldkit's desktop layout shift (0.771)** is its results section moving when the browser renders fetched results into the server-sent shell; it is most of its desktop score gap (layout shift is 25% of the score).
+- **Coarse and noisy.** Times are shown rounded to 0.1 s, so paint differences under about 100 ms do not register, and scores move several points between identical runs. A median of two runs is their mean.
+- **Foldkit Plus's failed runs.** To get three good runs, eight were read on mobile and five on desktop. In six on mobile and two on desktop, Lighthouse loaded Cloudflare's error 1102 page and scored that page (100, with no blocking time); those reports fail Lighthouse's `http-status-code` audit and are left out. Their ids are in `src/data/comparison.ts`.
+- **Foldkit's desktop layout shift (0.771)** is its results section moving when the browser renders fetched results into the server-sent shell; it is most of its desktop score gap (layout shift is 25% of the score). Foldkit Plus's (0.787 and 0.838 in two of three desktop runs, 0.637 in one mobile run) is most of its gap where it occurs; its cause is not investigated here.
 - **Solid's runs were taken after a fix, Foldkit's earlier the same day** (its site did not change). Solid's first runs showed a 0.049 mobile layout shift: the server rendered the result list in the desktop grid, and hydration re-laid it on phones. Rows are now placed by CSS container queries from their index, and the shift is 0.
-- **Total Blocking Time** follows JavaScript size; Foldkit ships about 2.7 times as much, including its DevTools overlay.
-- Each tested URL carried an extra `run=N` parameter so PSI would not reuse a cached report; both apps ignore it. Report ids are in `src/data/comparison.ts`.
+- **Total Blocking Time** follows JavaScript size; Foldkit ships about 2.7 times as much as Solid, including its DevTools overlay, and Foldkit Plus more again.
+- Each tested URL carried an extra `run=N` parameter so PSI would not reuse a cached report; all three apps ignore it. Report ids are in `src/data/comparison.ts`.
 
 ## Without JavaScript
 
@@ -161,5 +168,5 @@ The app first used a hand-written keyed cache, then moved to `@solidjs/router`'s
 ## Differences from the original
 
 - The backend is Solid server functions instead of Effect RPC. There is no custom pre-hydration bootstrap: Solid's `HydrationScript` captures early input and replays it on hydration (covered by `e2e/prehydration.spec.ts`).
-- `/compare` puts both versions side by side: measured speed, size, and code, plus an architecture mapping. Regenerate its numbers with `node scripts/benchmark.mjs`.
+- `/compare` puts this version, the original, and its Foldkit Plus port side by side: measured speed, size, and code, plus an architecture mapping. Regenerate its numbers with `node scripts/benchmark.mjs`.
 - Progressive loading has no separate planner. Each visible row's lookup is the request, so scrolling drives page loads. Requests are not cancelled (`query()` never aborts); lookups wait for a stable search instead.

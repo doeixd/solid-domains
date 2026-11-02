@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-31",
+  "measuredAt": "2026-11-02",
   "runs": 15,
   "query": "sunbeam",
   "environment": {
@@ -9,51 +9,71 @@
   },
   "sites": {
     "foldkit": "https://domains.foldkit.dev",
-    "solid": "https://solid-domains.doeixd.workers.dev"
+    "solid": "https://solid-domains.doeixd.workers.dev",
+    "plus": "https://foldkit-domains-plus.doeixd.workers.dev"
   },
   "results": {
     "foldkit": {
-      "ttfb": 56,
-      "fcp": 216,
-      "topPrices": 831,
-      "firstPage": 929,
+      "ttfb": 52,
+      "fcp": 180,
+      "topPrices": 619,
+      "firstPage": 682,
+      "firstCount": 60,
       "requests": 9,
       "htmlBytes": 4638,
-      "jsBytes": 220038,
+      "jsBytes": 219980,
       "cssBytes": 8205,
       "fontBytes": 29400,
-      "search": 312
+      "search": 251
     },
     "solid": {
-      "ttfb": 55,
-      "fcp": 220,
-      "topPrices": 220,
-      "firstPage": 288,
+      "ttfb": 64,
+      "fcp": 188,
+      "topPrices": 188,
+      "firstPage": 219,
+      "firstCount": 60,
       "requests": 7,
-      "htmlBytes": 5534,
-      "jsBytes": 81134,
-      "cssBytes": 9125,
+      "htmlBytes": 5533,
+      "jsBytes": 81173,
+      "cssBytes": 9122,
       "fontBytes": 29400,
-      "search": 242
+      "search": 213
+    },
+    "plus": {
+      "ttfb": 1292,
+      "fcp": 1404,
+      "topPrices": 1404,
+      "firstPage": 1404,
+      "firstCount": 66,
+      "requests": 4,
+      "htmlBytes": 28382,
+      "jsBytes": 296032,
+      "cssBytes": 0,
+      "fontBytes": 29400,
+      "search": 269
     }
   },
   "spread": {
     "foldkit": {
       "ttfb": [
-        49,
+        48,
         60
       ],
       "fcp": [
-        196,
-        244
+        164,
+        192
       ],
       "topPrices": [
-        770,
-        1008
+        607,
+        649
       ],
       "firstPage": [
-        849,
-        1110
+        659,
+        707
+      ],
+      "firstCount": [
+        60,
+        60
       ],
       "requests": [
         9,
@@ -69,45 +89,49 @@
       ],
       "cssBytes": [
         8205,
-        8207
+        8205
       ],
       "fontBytes": [
         29400,
         29400
       ],
       "search": [
-        301,
-        342
+        248,
+        258
       ]
     },
     "solid": {
       "ttfb": [
-        50,
-        68
+        54,
+        69
       ],
       "fcp": [
-        200,
-        240
+        168,
+        212
       ],
       "topPrices": [
-        200,
-        240
+        168,
+        212
       ],
       "firstPage": [
-        271,
-        305
+        198,
+        234
+      ],
+      "firstCount": [
+        60,
+        60
       ],
       "requests": [
         7,
         7
       ],
       "htmlBytes": [
-        5534,
-        5534
+        5533,
+        5533
       ],
       "jsBytes": [
-        81127,
-        81169
+        81170,
+        81196
       ],
       "cssBytes": [
         9122,
@@ -118,9 +142,721 @@
         29400
       ],
       "search": [
-        227,
-        261
+        211,
+        226
+      ]
+    },
+    "plus": {
+      "ttfb": [
+        1195,
+        1312
+      ],
+      "fcp": [
+        1320,
+        1420
+      ],
+      "topPrices": [
+        1320,
+        1420
+      ],
+      "firstPage": [
+        1320,
+        1420
+      ],
+      "firstCount": [
+        66,
+        66
+      ],
+      "requests": [
+        4,
+        4
+      ],
+      "htmlBytes": [
+        28381,
+        28382
+      ],
+      "jsBytes": [
+        296031,
+        296032
+      ],
+      "cssBytes": [
+        0,
+        0
+      ],
+      "fontBytes": [
+        29400,
+        29400
+      ],
+      "search": [
+        259,
+        292
       ]
     }
+  },
+  "attempts": {
+    "foldkit": 15,
+    "solid": 15,
+    "plus": 117
+  },
+  "timed": {
+    "foldkit": 15,
+    "solid": 15,
+    "plus": 10
+  },
+  "failures": {
+    "foldkit": [],
+    "solid": [],
+    "plus": [
+      {
+        "run": 1,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a5437f0f0e2511f5-BOS"
+      },
+      {
+        "run": 1,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a5437f13e905265b-BOS"
+      },
+      {
+        "run": 1,
+        "attempt": 3,
+        "status": 503,
+        "ray": "a5437f18fe389053-BOS"
+      },
+      {
+        "run": 1,
+        "attempt": 4,
+        "status": 503,
+        "ray": "a5437f1e0e6803b4-BOS"
+      },
+      {
+        "run": 3,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a5437f6d3c18c208-BOS"
+      },
+      {
+        "run": 3,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a5437f729f58df84-BOS"
+      },
+      {
+        "run": 3,
+        "attempt": 3,
+        "status": 503,
+        "ray": "a5437f77fc8794f4-BOS"
+      },
+      {
+        "run": 3,
+        "attempt": 4,
+        "status": 503,
+        "ray": "a5437f7d0ff54f75-BOS"
+      },
+      {
+        "run": 3,
+        "attempt": 5,
+        "status": 503,
+        "ray": "a5437f824d0b8fde-BOS"
+      },
+      {
+        "run": 3,
+        "attempt": 6,
+        "status": 503,
+        "ray": "a5437f87b838de01-BOS"
+      },
+      {
+        "run": 3,
+        "attempt": 7,
+        "status": 503,
+        "ray": "a5437f8cff63904d-BOS"
+      },
+      {
+        "run": 3,
+        "attempt": 8,
+        "status": 503,
+        "ray": "a5437f921b546492-BOS"
+      },
+      {
+        "run": 3,
+        "attempt": 9,
+        "status": 503,
+        "ray": "a5437f970efdd5eb-BOS"
+      },
+      {
+        "run": 4,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a5437fe3da7d9017-BOS"
+      },
+      {
+        "run": 4,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a5437fe8ebdc75f9-BOS"
+      },
+      {
+        "run": 4,
+        "attempt": 3,
+        "status": 503,
+        "ray": "a5437fee0a39e8a9-BOS"
+      },
+      {
+        "run": 4,
+        "attempt": 4,
+        "status": 503,
+        "ray": "a5437ff3291fcc9b-BOS"
+      },
+      {
+        "run": 4,
+        "attempt": 5,
+        "status": 503,
+        "ray": "a5437ff85efe903e-BOS"
+      },
+      {
+        "run": 4,
+        "attempt": 6,
+        "status": 503,
+        "ray": "a5437ffd7ff212f4-BOS"
+      },
+      {
+        "run": 5,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a54380285baf906b-BOS"
+      },
+      {
+        "run": 5,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a543802daab0905c-BOS"
+      },
+      {
+        "run": 5,
+        "attempt": 3,
+        "status": 503,
+        "ray": "a54380334bb32fc4-BOS"
+      },
+      {
+        "run": 5,
+        "attempt": 4,
+        "status": 503,
+        "ray": "a54380387d03171b-BOS"
+      },
+      {
+        "run": 5,
+        "attempt": 5,
+        "status": 503,
+        "ray": "a543803d7bebf1c4-BOS"
+      },
+      {
+        "run": 5,
+        "attempt": 6,
+        "status": 503,
+        "ray": "a5438042cfaa265b-BOS"
+      },
+      {
+        "run": 5,
+        "attempt": 7,
+        "status": 503,
+        "ray": "a5438047ab054f75-BOS"
+      },
+      {
+        "run": 5,
+        "attempt": 8,
+        "status": 503,
+        "ray": "a543804cba8cb5f8-BOS"
+      },
+      {
+        "run": 5,
+        "attempt": 9,
+        "status": 503,
+        "ray": "a5438051edeb72e6-BOS"
+      },
+      {
+        "run": 5,
+        "attempt": 10,
+        "status": 503,
+        "ray": "a5438056fa178ceb-BOS"
+      },
+      {
+        "run": 6,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a5438066d998c1a2-BOS"
+      },
+      {
+        "run": 6,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a543806bcff1dd5e-BOS"
+      },
+      {
+        "run": 7,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a54380b18b912495-BOS"
+      },
+      {
+        "run": 7,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a54380b67f5d896f-BOS"
+      },
+      {
+        "run": 7,
+        "attempt": 3,
+        "status": 503,
+        "ray": "a54380bb6cc2904b-BOS"
+      },
+      {
+        "run": 7,
+        "attempt": 4,
+        "status": 503,
+        "ray": "a54380c07c3f8f9f-BOS"
+      },
+      {
+        "run": 7,
+        "attempt": 5,
+        "status": 503,
+        "ray": "a54380c56fc65e9a-BOS"
+      },
+      {
+        "run": 7,
+        "attempt": 6,
+        "status": 503,
+        "ray": "a54380ca6c38a8bf-BOS"
+      },
+      {
+        "run": 7,
+        "attempt": 7,
+        "status": 503,
+        "ray": "a54380cf5b18e728-BOS"
+      },
+      {
+        "run": 7,
+        "attempt": 8,
+        "status": 503,
+        "ray": "a54380d45ae29053-BOS"
+      },
+      {
+        "run": 8,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a5438101e9f64cec-BOS"
+      },
+      {
+        "run": 8,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a54381073d457d19-BOS"
+      },
+      {
+        "run": 8,
+        "attempt": 3,
+        "status": 503,
+        "ray": "a543810c4e1c4cd5-BOS"
+      },
+      {
+        "run": 8,
+        "attempt": 4,
+        "status": 503,
+        "ray": "a543811178190cee-BOS"
+      },
+      {
+        "run": 8,
+        "attempt": 5,
+        "status": 503,
+        "ray": "a54381169a9aa115-BOS"
+      },
+      {
+        "run": 8,
+        "attempt": 6,
+        "status": 503,
+        "ray": "a543811bbef50bfd-BOS"
+      },
+      {
+        "run": 8,
+        "attempt": 7,
+        "status": 503,
+        "ray": "a5438120cc8078bc-BOS"
+      },
+      {
+        "run": 8,
+        "attempt": 8,
+        "status": 503,
+        "ray": "a5438125d9dd5e18-BOS"
+      },
+      {
+        "run": 8,
+        "attempt": 9,
+        "status": 503,
+        "ray": "a543812acfa70fae-BOS"
+      },
+      {
+        "run": 8,
+        "attempt": 10,
+        "status": 503,
+        "ray": "a543812fdc2a4cc9-BOS"
+      },
+      {
+        "run": 9,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a54381419b8d68b4-BOS"
+      },
+      {
+        "run": 9,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a5438146ad70ae2c-BOS"
+      },
+      {
+        "run": 9,
+        "attempt": 3,
+        "status": 503,
+        "ray": "a543814baaef8ff6-BOS"
+      },
+      {
+        "run": 9,
+        "attempt": 4,
+        "status": 503,
+        "ray": "a5438150ae5ade02-BOS"
+      },
+      {
+        "run": 9,
+        "attempt": 5,
+        "status": 503,
+        "ray": "a5438155af848fff-BOS"
+      },
+      {
+        "run": 9,
+        "attempt": 6,
+        "status": 503,
+        "ray": "a543815acba11df6-BOS"
+      },
+      {
+        "run": 9,
+        "attempt": 7,
+        "status": 503,
+        "ray": "a543815fce1d4ce0-BOS"
+      },
+      {
+        "run": 9,
+        "attempt": 8,
+        "status": 503,
+        "ray": "a5438164ed3b90e1-BOS"
+      },
+      {
+        "run": 10,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a54381a77ca78a39-BOS"
+      },
+      {
+        "run": 10,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a54381acaee88f76-BOS"
+      },
+      {
+        "run": 10,
+        "attempt": 3,
+        "status": 503,
+        "ray": "a54381b1b88cc74d-BOS"
+      },
+      {
+        "run": 10,
+        "attempt": 4,
+        "status": 503,
+        "ray": "a54381b6db2f8120-BOS"
+      },
+      {
+        "run": 11,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a54381dd8ea3aa97-BOS"
+      },
+      {
+        "run": 11,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a54381e2aadad961-BOS"
+      },
+      {
+        "run": 11,
+        "attempt": 3,
+        "status": 503,
+        "ray": "a54381e7c86955e2-BOS"
+      },
+      {
+        "run": 11,
+        "attempt": 4,
+        "status": 503,
+        "ray": "a54381ecdf5933a9-BOS"
+      },
+      {
+        "run": 11,
+        "attempt": 5,
+        "status": 503,
+        "ray": "a54381f1deb0902f-BOS"
+      },
+      {
+        "run": 11,
+        "attempt": 6,
+        "status": 503,
+        "ray": "a54381f6ddd7e728-BOS"
+      },
+      {
+        "run": 11,
+        "attempt": 7,
+        "status": 503,
+        "ray": "a54381fbd8da8fe1-BOS"
+      },
+      {
+        "run": 11,
+        "attempt": 8,
+        "status": 503,
+        "ray": "a5438200f827a6fa-BOS"
+      },
+      {
+        "run": 11,
+        "attempt": 9,
+        "status": 503,
+        "ray": "a5438205ffcf4b49-BOS"
+      },
+      {
+        "run": 11,
+        "attempt": 10,
+        "status": 503,
+        "ray": "a543820b1aa293b5-BOS"
+      },
+      {
+        "run": 12,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a543821ba91264fe-BOS"
+      },
+      {
+        "run": 12,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a5438220bee549bf-BOS"
+      },
+      {
+        "run": 12,
+        "attempt": 3,
+        "status": 503,
+        "ray": "a5438225d8acf281-BOS"
+      },
+      {
+        "run": 12,
+        "attempt": 4,
+        "status": 503,
+        "ray": "a543822b0a348fae-BOS"
+      },
+      {
+        "run": 12,
+        "attempt": 5,
+        "status": 503,
+        "ray": "a54382304e0cde02-BOS"
+      },
+      {
+        "run": 12,
+        "attempt": 6,
+        "status": 503,
+        "ray": "a5438235591f2495-BOS"
+      },
+      {
+        "run": 12,
+        "attempt": 7,
+        "status": 503,
+        "ray": "a543823a59c38fcc-BOS"
+      },
+      {
+        "run": 12,
+        "attempt": 8,
+        "status": 503,
+        "ray": "a543823f7a892fc4-BOS"
+      },
+      {
+        "run": 12,
+        "attempt": 9,
+        "status": 503,
+        "ray": "a54382448ff325d0-BOS"
+      },
+      {
+        "run": 13,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a543828fae4daa06-BOS"
+      },
+      {
+        "run": 13,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a5438294df98231a-BOS"
+      },
+      {
+        "run": 13,
+        "attempt": 3,
+        "status": 503,
+        "ray": "a5438299aa799aaa-BOS"
+      },
+      {
+        "run": 13,
+        "attempt": 4,
+        "status": 503,
+        "ray": "a543829ec83e4cdc-BOS"
+      },
+      {
+        "run": 13,
+        "attempt": 5,
+        "status": 503,
+        "ray": "a54382a438532d6c-BOS"
+      },
+      {
+        "run": 13,
+        "attempt": 6,
+        "status": 503,
+        "ray": "a54382a94d8aae27-BOS"
+      },
+      {
+        "run": 13,
+        "attempt": 7,
+        "status": 503,
+        "ray": "a54382ae79842495-BOS"
+      },
+      {
+        "run": 13,
+        "attempt": 8,
+        "status": 503,
+        "ray": "a54382b369268ff3-BOS"
+      },
+      {
+        "run": 13,
+        "attempt": 9,
+        "status": 503,
+        "ray": "a54382b88faad961-BOS"
+      },
+      {
+        "run": 13,
+        "attempt": 10,
+        "status": 503,
+        "ray": "a54382bd798464ee-BOS"
+      },
+      {
+        "run": 14,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a54382cb9aa991fd-BOS"
+      },
+      {
+        "run": 14,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a54382d0bd078f68-BOS"
+      },
+      {
+        "run": 14,
+        "attempt": 3,
+        "status": 503,
+        "ray": "a54382d5de208f93-BOS"
+      },
+      {
+        "run": 14,
+        "attempt": 4,
+        "status": 503,
+        "ray": "a54382db09410bfa-BOS"
+      },
+      {
+        "run": 14,
+        "attempt": 5,
+        "status": 503,
+        "ray": "a54382e02fca21a0-BOS"
+      },
+      {
+        "run": 14,
+        "attempt": 6,
+        "status": 503,
+        "ray": "a54382e56e522495-BOS"
+      },
+      {
+        "run": 14,
+        "attempt": 7,
+        "status": 503,
+        "ray": "a54382ea5a9a896d-BOS"
+      },
+      {
+        "run": 14,
+        "attempt": 8,
+        "status": 503,
+        "ray": "a54382ef7d10906f-BOS"
+      },
+      {
+        "run": 14,
+        "attempt": 9,
+        "status": 503,
+        "ray": "a54382f49cbb1b5e-BOS"
+      },
+      {
+        "run": 14,
+        "attempt": 10,
+        "status": 503,
+        "ray": "a54382f99f149a92-BOS"
+      },
+      {
+        "run": 15,
+        "attempt": 1,
+        "status": 503,
+        "ray": "a5438309fea5f58d-BOS"
+      },
+      {
+        "run": 15,
+        "attempt": 2,
+        "status": 503,
+        "ray": "a543830f2ec8d07e-BOS"
+      },
+      {
+        "run": 15,
+        "attempt": 3,
+        "status": 503,
+        "ray": "a54383147c9a5ea9-BOS"
+      },
+      {
+        "run": 15,
+        "attempt": 4,
+        "status": 503,
+        "ray": "a5438319e94a83c3-BOS"
+      },
+      {
+        "run": 15,
+        "attempt": 5,
+        "status": 503,
+        "ray": "a543831f1d988e30-BOS"
+      },
+      {
+        "run": 15,
+        "attempt": 6,
+        "status": 503,
+        "ray": "a54383249ebd4cc9-BOS"
+      },
+      {
+        "run": 15,
+        "attempt": 7,
+        "status": 503,
+        "ray": "a5438329cc658a39-BOS"
+      }
+    ]
+  },
+  "sizeFetchFailures": {
+    "foldkit-domains-plus.doeixd.workers.dev": 43
+  },
+  "inPage": {
+    "foldkit": [],
+    "solid": [],
+    "plus": []
   }
 }
