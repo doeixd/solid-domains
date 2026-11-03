@@ -81,7 +81,7 @@ export const failureSummary = () =>
 
 /** The statuses the failed loads were answered with. */
 export const failureStatuses = [
-  ...new Set(SITES.flatMap(({ site }): Array<number | null> => benchmark.failures[site].map(failure => failure.status))),
+  ...new Set(SITES.flatMap(({ site }): Array<number | null> => (benchmark.failures[site] as Array<{ status: number | null }>).map(failure => failure.status))),
 ]
 
 /** Lower is better for every row. */
@@ -90,7 +90,7 @@ export const speedMetrics: Metric[] = [
     'Time to first byte',
     'Server response starts',
     'ttfb',
-    'Not the same work: Solid’s and Foldkit Plus’s servers render priced rows; Foldkit’s renders a shell without prices. Foldkit Plus’s server reads every price the page shows, then renders, before its first byte; only the loads it did not fail are timed.',
+    'Not the same work: Solid’s and Foldkit Plus’s servers render priced rows; Foldkit’s renders a shell without prices. Foldkit Plus’s server reads every price the page shows, then renders, before its first byte, unless it serves a copy it cached for 60 s (Cache-Control: public, max-age=60); the benchmark requests one URL every time, so these are the loads that succeeded, mostly of a page requested again.',
   ),
   timing('First paint', 'First contentful paint', 'fcp'),
   timing(
@@ -103,7 +103,7 @@ export const speedMetrics: Metric[] = [
     'First 60 names priced',
     '“N of 556 domains checked”, N ≥ 60',
     'firstPage',
-    'Foldkit and Solid count in 60-name pages, so this is their “60 of 556”. Foldkit Plus reads the rows in view instead; its server’s first count is 66 (the rows its window draws), already in the HTML.',
+    'Foldkit and Solid count in 60-name pages, so this is their “60 of 556”. Foldkit Plus reads the rows in view instead; its server’s first count is now 24 (the rows its window draws), already in the HTML, and the page never counts 60 without scrolling, so it has no value here.',
   ),
   timing(
     'New search',
@@ -130,20 +130,19 @@ export const sizeMetrics: Metric[] = [
     'HTML',
     'Document for ?q=sunbeam, brotli',
     'htmlBytes',
-    'Not the same content: Solid’s and Foldkit Plus’s include the priced rows, their data for hydration, and the forms that make filters and the cart work without JavaScript. Foldkit Plus’s also carries its whole stylesheet inline.',
+    'Not the same content: Solid’s and Foldkit Plus’s include the priced rows, their data for hydration, and the forms that make filters and the cart work without JavaScript. Foldkit Plus’s no longer carries its stylesheet inline (it links a file since v0.38.0).',
   ),
   size(
     'CSS',
     'Stylesheets the page loads, brotli',
     'cssBytes',
-    'Solid’s Inspector styles load only when it opens, so they are not in this total. Foldkit Plus loads no stylesheet file: its styles are inline in the HTML.',
+    'Solid’s Inspector styles load only when it opens, so they are not in this total. Foldkit Plus links its stylesheet as a file since v0.38.0 (it was inline in the HTML before).',
   ),
   {
     label: 'HTML and CSS',
     detail: 'The two rows above together',
     unit: 'KB',
     values: { solid: htmlAndCss('solid'), foldkit: htmlAndCss('foldkit'), plus: htmlAndCss('plus') },
-    note: 'Where Foldkit Plus’s styles are counted.',
   },
 ]
 
@@ -177,13 +176,26 @@ export const codeMetrics: Metric[] = [
   },
 ]
 
-/** Foldkit Plus's failure rate at a gentle pace, outside the benchmark (curl, 2026-11-02, 13:34–13:39 UTC). */
-const SPACED_PROBE = { requests: 30, failed: 29, every: '10 s' }
+/**
+ * Foldkit Plus v0.38.0, 2026-11-02, outside the benchmark: curl, one request
+ * at a time. The URL requested again is /?q=sunbeam; a never-seen search is
+ * /?q=<random word>. The response has no cf-cache-status or age header, so
+ * whether a copy answered cannot be read from it.
+ */
+const PLUS_PROBE = {
+  /** The benchmark's own loads of /?q=sunbeam. */
+  benchmarkLoads: { requests: 15, failed: 0 },
+  /** Straight after it. */
+  repeatedAfter: { requests: 15, failed: 5 },
+  /** Minutes later, after 40 tries four seconds apart to get one 200 had all failed. */
+  repeatedLater: { requests: 15, failed: 15 },
+  neverSeen: { requests: 15, failed: 13 },
+}
 
 /** Where the three are not measured or built on equal terms. */
 export const caveats = [
   'Different work per page. Solid and Foldkit Plus render prices on the server; Foldkit renders a shell and fetches prices in the browser. First byte, HTML size, and “prices on screen” all reflect that choice, not just framework speed.',
-  `Foldkit Plus’s server is expensive. Reading the prices a page shows before rendering it costs 150–530 ms of Worker CPU per request, mostly Foldkit’s experimental server re-parsing its own output (domains-plus issue #411). Workers’ free plan allows 10 ms, so requests fail with error 1102 (a 503): ${failed('plus').failed} of ${failed('plus').attempts} loads in this run, which retried at once, and ${SPACED_PROBE.failed} of ${SPACED_PROBE.requests} single requests sent ${SPACED_PROBE.every} apart right after it. Its timings are of the loads that succeeded. Solid’s server spends 5–12 ms on the same page.`,
+  `Foldkit Plus’s server is expensive. Reading the prices a page shows before rendering it costs 150–530 ms of Worker CPU (measured on v0.37.0), mostly Foldkit’s experimental server re-parsing its own output. Workers’ free plan allows 10 ms, so a render that exceeds it fails with error 1102 (a 503). Since v0.38.0 a page is cached for 60 s, so the failure rate depends on whether a copy exists. A page requested again: ${PLUS_PROBE.benchmarkLoads.failed} of ${PLUS_PROBE.benchmarkLoads.requests} of the benchmark’s loads failed, ${PLUS_PROBE.repeatedAfter.failed} of ${PLUS_PROBE.repeatedAfter.requests} sequential requests to the same URL straight after, and ${PLUS_PROBE.repeatedLater.failed} of ${PLUS_PROBE.repeatedLater.requests} minutes later, when no copy was left and no render succeeded. A never-seen search: ${PLUS_PROBE.neverSeen.failed} of ${PLUS_PROBE.neverSeen.requests} failed. Uncached renders can exceed the free Workers plan’s CPU limit because Foldkit’s server checks re-parse the output (an upstream Foldkit issue). Its timings are of the loads that succeeded, of a URL requested again. Solid’s server spends 5–12 ms on the same page.`,
   `Foldkit ships its DevTools overlay in production by design: an estimated ${DEVTOOLS_KB} KB of its JavaScript, so without it Foldkit would load about ${Math.round((kb(measured('foldkit', 'jsBytes')) ?? 0) - DEVTOOLS_KB)} KB. Foldkit Plus ships the same DevTools. Solid’s dev toolbar (@solidjs/start-devtools) is development-only by design and is not in production builds; this app’s own request Inspector is app code, counted in its lines and loaded on demand.`,
   'Before hydration: Foldkit’s bootstrap script makes the input fully work before its bundle runs. Solid’s captures clicks and typing and replays them when it hydrates. Foldkit Plus keeps what is typed and replays it at boot; nothing on screen answers it until then.',
   'Foldkit Plus is not a full match for the original yet: 40 of upstream’s 67 Playwright tests pass against it in Chromium. Most of the rest test by design what it does differently: they expect the page to answer typing before its bundle (11), wait in the browser for prices its server already read (10), or count 60-name pages where it reads the rows in view (6).',
@@ -198,7 +210,7 @@ export const caveats = [
  * 2026-10-31 from pagespeed.web.dev: three runs per site and form factor.
  * Solid's were re-run after its list layout fix; Foldkit's site did not
  * change, so its runs from earlier that day stand. Foldkit Plus's were taken
- * 2026-11-02: one PSI run tests both form factors, so a report id can appear
+ * 2026-11-02 (v0.37.0, not re-run for v0.38.0): one PSI run tests both form factors, so a report id can appear
  * under both, and runs that measured its error page are listed apart. Times in
  * ms (PSI shows them rounded to 0.1 s), CLS unitless, score 0–100. Each run's
  * report id is kept so the numbers can be checked against the source.
@@ -276,7 +288,7 @@ export const pageSpeedCaveats = [
   'Lab data, not real users. None of the three sites has enough traffic for Chrome UX Report field data, so PSI shows no Core Web Vitals assessment for any; these are single synthetic loads.',
   'Simulated, not observed. Mobile emulates a Moto G Power on slow 4G with a slowed CPU; desktop uses lighter throttling. Lighthouse estimates throttled timings from an unthrottled load, so they are modeled values, and they run from Google’s servers, not the machine the other tables were measured on.',
   'Coarse and noisy. PSI shows times rounded to 0.1 s, so paint differences under about 100 ms do not register, and the score moves several points between identical runs (Foldkit mobile ranged 93–98). Medians of three runs per site and form factor are shown, with the range; Foldkit Plus’s mobile median is of two.',
-  'Foldkit Plus’s runs were taken 2026-11-02 with v0.37.0. To get three good runs, eight were read on mobile and five on desktop. In six on mobile and two on desktop, Lighthouse loaded Cloudflare’s error 1102 page (its server ran out of CPU) and scored that page; those reports are linked apart and left out. Mobile stopped at two good runs of eight.',
+  'Foldkit Plus’s runs were taken 2026-11-02 with v0.37.0 and were not repeated for v0.38.0 (PageSpeed Insights’ daily quota for keyless requests was spent), so its caching, linked stylesheet and layout-shift changes are not reflected in them. To get three good runs, eight were read on mobile and five on desktop. In six on mobile and two on desktop, Lighthouse loaded Cloudflare’s error 1102 page (its server ran out of CPU) and scored that page; those reports are linked apart and left out. Mobile stopped at two good runs of eight.',
   'Foldkit Plus’s layout shift (0.787 and 0.838 in two of three desktop runs, 0.637 in one mobile run) is most of its score gap where it occurs; its cause is not investigated here.',
   'Foldkit’s desktop layout shift (0.771) is its results section moving when the browser renders the fetched results into the server-sent shell; it is most of the gap in its desktop score. Layout shift is 25% of the score.',
   'Solid’s runs were taken after a fix and Foldkit’s earlier the same day. Solid’s first runs showed a 0.049 mobile layout shift: the server rendered the result list in the desktop grid and hydration re-laid it on phones. Rows are now placed by CSS container queries, and the shift is 0.',
@@ -408,8 +420,8 @@ export const strengths = {
 
 /** What Foldkit Plus costs, shown beside its strengths. */
 export const plusCosts = [
-  'Its server spends 150–530 ms of CPU per page, so on Workers’ free plan some loads fail with error 1102.',
-  'The most JavaScript of the three, and the theme’s stylesheet inline in every page.',
+  'Its server spends 150–530 ms of CPU to render a page, so on Workers’ free plan an uncached render can fail with error 1102.',
+  'The most JavaScript of the three.',
   'Typing before the bundle is replayed at boot, not answered.',
   '40 of upstream’s 67 browser tests pass; most of the rest test what it does differently by design.',
 ]

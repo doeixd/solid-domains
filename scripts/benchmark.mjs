@@ -107,7 +107,9 @@ const measureLoad = async (browser, url) => {
     await context.close()
     return { failure }
   }
-  await page.waitForFunction(() => window.__bench.firstPage, null, { timeout: 15_000 })
+  // A page that never counts 60 names (Foldkit Plus draws 24 and reads only the
+  // rows in view) is kept, with that milestone left null.
+  await page.waitForFunction(() => window.__bench.firstPage, null, { timeout: 15_000 }).catch(() => {})
 
   const load = await page.evaluate(() => {
     const nav = performance.getEntriesByType('navigation')[0]
@@ -118,9 +120,9 @@ const measureLoad = async (browser, url) => {
     return {
       ttfb: nav.responseStart,
       fcp,
-      topPrices: painted(window.__bench.topPrices),
-      firstPage: painted(window.__bench.firstPage),
-      firstCount: window.__bench.firstCount,
+      topPrices: painted(window.__bench.topPrices) ?? null,
+      firstPage: painted(window.__bench.firstPage) ?? null,
+      firstCount: window.__bench.firstCount ?? null,
       requests: performance.getEntriesByType('resource').length + 1,
     }
   })
