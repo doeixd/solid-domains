@@ -7,6 +7,7 @@ import {
   failureStatuses,
   failureSummary,
   PLUS_REPO,
+  plusChanges,
   plusCosts,
   PLUS_SITE,
   SITES,
@@ -435,6 +436,34 @@ export default function Compare() {
                     <td data-label="Foldkit">{row.foldkit}</td>
                     <td data-label="Foldkit Plus">{row.plus}</td>
                     <td data-label="Solid 2.0">{row.solid}</td>
+                  </tr>
+                )}
+              </For>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="compare-section" aria-labelledby="plus-heading">
+          <h2 id="plus-heading">What Foldkit Plus changes over Foldkit</h2>
+          <p>
+            The same app on the same framework, rebuilt with the Foldkit Plus packages. Each change, what it buys,
+            and what it costs.
+          </p>
+          <table class="concept-table">
+            <thead>
+              <tr>
+                <th scope="col">Change</th>
+                <th scope="col">What it buys</th>
+                <th scope="col">What it costs</th>
+              </tr>
+            </thead>
+            <tbody>
+              <For each={plusChanges}>
+                {row => (
+                  <tr>
+                    <th scope="row">{row.change}</th>
+                    <td data-label="What it buys">{row.gain}</td>
+                    <td data-label="What it costs">{row.cost}</td>
                   </tr>
                 )}
               </For>

@@ -196,7 +196,7 @@ const PLUS_PROBE = {
 export const caveats = [
   'Different work per page. Solid and Foldkit Plus render prices on the server; Foldkit renders a shell and fetches prices in the browser. First byte, HTML size, and “prices on screen” all reflect that choice, not just framework speed.',
   `Foldkit Plus’s server is expensive. Reading the prices a page shows before rendering it costs 150–530 ms of Worker CPU (measured on v0.37.0), mostly Foldkit’s experimental server re-parsing its own output. Workers’ free plan allows 10 ms, so a render that exceeds it fails with error 1102 (a 503). Since v0.38.0 a page is cached for 60 s, so the failure rate depends on whether a copy exists. A page requested again: ${PLUS_PROBE.benchmarkLoads.failed} of ${PLUS_PROBE.benchmarkLoads.requests} of the benchmark’s loads failed, ${PLUS_PROBE.repeatedAfter.failed} of ${PLUS_PROBE.repeatedAfter.requests} sequential requests to the same URL straight after, and ${PLUS_PROBE.repeatedLater.failed} of ${PLUS_PROBE.repeatedLater.requests} minutes later, when no copy was left and no render succeeded. A never-seen search: ${PLUS_PROBE.neverSeen.failed} of ${PLUS_PROBE.neverSeen.requests} failed. Uncached renders can exceed the free Workers plan’s CPU limit because Foldkit’s server checks re-parse the output (an upstream Foldkit issue). Its timings are of the loads that succeeded, of a URL requested again. Solid’s server spends 5–12 ms on the same page.`,
-  `Foldkit ships its DevTools overlay in production by design: an estimated ${DEVTOOLS_KB} KB of its JavaScript, so without it Foldkit would load about ${Math.round((kb(measured('foldkit', 'jsBytes')) ?? 0) - DEVTOOLS_KB)} KB. Foldkit Plus ships the same DevTools. Solid’s dev toolbar (@solidjs/start-devtools) is development-only by design and is not in production builds; this app’s own request Inspector is app code, counted in its lines and loaded on demand.`,
+  `Foldkit ships its DevTools overlay in production by design: an estimated ${DEVTOOLS_KB} KB of its JavaScript, so without it Foldkit would load about ${Math.round((kb(measured('foldkit', 'jsBytes')) ?? 0) - DEVTOOLS_KB)} KB. Foldkit Plus loads them in development only. Solid’s dev toolbar (@solidjs/start-devtools) is development-only by design and is not in production builds; this app’s own request Inspector is app code, counted in its lines and loaded on demand.`,
   'Before hydration: Foldkit’s bootstrap script makes the input fully work before its bundle runs. Solid’s captures clicks and typing and replays them when it hydrates. Foldkit Plus keeps what is typed and replays it at boot; nothing on screen answers it until then.',
   'Foldkit Plus is not a full match for the original yet: 40 of upstream’s 67 Playwright tests pass against it in Chromium. Most of the rest test by design what it does differently: they expect the page to answer typing before its bundle (11), wait in the browser for prices its server already read (10), or count 60-name pages where it reads the rows in view (6).',
   'Hosting: Foldkit is served from a custom domain on a Cloudflare zone, Solid and Foldkit Plus from workers.dev. All three are Cloudflare Workers, but zone settings (protocols, caching features) and plans can differ.',
@@ -338,7 +338,7 @@ export const concepts: ConceptRow[] = [
   {
     concept: 'Server rendering',
     foldkit: 'Prerendered and request-time SSR of the shell; prices load in the browser over RPC.',
-    plus: 'Every page rendered whole by the Worker (foldkit-ssr). The server reads the prices the page shows first, and sends them with the page, so the browser asks for none of them again. That read is what costs 150–530 ms of CPU.',
+    plus: 'Every page rendered whole by the Worker (foldkit-ssr). The server reads the prices the page shows first, and sends them with the page, so the browser asks for none of them again. Each render costs about 60 ms of CPU for the home page and 190 ms for a search, most of it Foldkit’s own checks of the server markup.',
     solid:
       'Streaming SSR with an app-level router preload (a loader): the first ranges are fetched before render, rows read them synchronously, and the browser adopts the data.',
   },
@@ -378,13 +378,13 @@ export const concepts: ConceptRow[] = [
   {
     concept: 'Styles',
     foldkit: 'Tailwind 4 and a stylesheet file.',
-    plus: 'No CSS file: style.ts, one foldkit-mixins theme and Style code, written into each page’s head.',
+    plus: 'No CSS to write: style.ts, one foldkit-mixins theme and Style code, compiled at build into a hashed stylesheet the page links.',
     solid: 'Tailwind 4 and a stylesheet file; the Inspector’s and this page’s styles load with them.',
   },
   {
     concept: 'Tooling',
     foldkit: 'Shipped DevTools: Message, Model, Command, and Mount timeline with inspect mode.',
-    plus: 'Foldkit’s shipped DevTools, as in the original.',
+    plus: 'Foldkit’s DevTools in development; the deployed build leaves them out.',
     solid: 'A request inspector: the request log, ranges loaded, and injected latency and failures.',
   },
   {
@@ -420,8 +420,54 @@ export const strengths = {
 
 /** What Foldkit Plus costs, shown beside its strengths. */
 export const plusCosts = [
-  'Its server spends 150–530 ms of CPU to render a page, so on Workers’ free plan an uncached render can fail with error 1102.',
+  'Its server spends about 60–190 ms of CPU to render a page, so on Workers’ free plan an uncached render can fail with error 1102.',
   'The most JavaScript of the three.',
   'Typing before the bundle is replayed at boot, not answered.',
   '40 of upstream’s 67 browser tests pass; most of the rest test what it does differently by design.',
+]
+
+export type PlusChange = { change: string; gain: string; cost: string }
+
+/** What Foldkit Plus changes over stock Foldkit, each with what it buys and what it costs. */
+export const plusChanges: PlusChange[] = [
+  {
+    change: 'Server data is declared, not fetched (foldkit-remote).',
+    gain: 'Each part of the page names the domains it shows, and Remote reads the ones it lacks in one batch, keeps them fresh and drops what nothing shows. Upstream’s query cache, range planner and generation checks are gone from the app.',
+    cost: 'A runtime of its own in every page, and a new idea to learn (Surfaces and what they read). When a read misbehaves you debug Remote’s state, not your own Command.',
+  },
+  {
+    change: 'The whole page is rendered on the server, data included (foldkit-ssr).',
+    gain: 'Prices arrive in the first HTML and the browser never asks for them again: Top Results are priced in about a third of upstream’s time. The Model travels in the page, so the client starts where the server stopped.',
+    cost: 'Every uncached page costs server CPU (about 60–190 ms here), which the free Workers plan does not allow, and the HTML is larger (11 KB against 4.5 KB) because it carries the Model.',
+  },
+  {
+    change: 'It works without JavaScript.',
+    gain: 'Search, filters, paging and the cart work with scripts off: a GET form, ?from= links, and buttons that post their Message for the server to run through the same update.',
+    cost: 'The server runs the application’s update, so update must stay free of browser-only work, and every control needs a form or link beside its handler.',
+  },
+  {
+    change: 'Reads and pages can be kept at the edge, declared on the domain.',
+    gain: 'The domain says how long a price stays fresh; the server keeps a read or a page only when it can show no viewer would see it differently, so a repeated page skips the render.',
+    cost: 'It helps only while copies exist: on this workers.dev deploy a URL left idle for minutes failed every request, and a never-seen search still renders.',
+  },
+  {
+    change: 'Styles are typed code with a theme (foldkit-mixins), not Tailwind classes.',
+    gain: 'A theme is a few typed knobs (density, radius, contrast, accent), components take their look through named slots, and the build writes one hashed stylesheet.',
+    cost: 'More CSS than Tailwind’s output (18 KB against 8 KB), and the style system’s runtime ships to the browser.',
+  },
+  {
+    change: 'The address and the cart mirror the Model (Mirror.url, Mirror.cookie).',
+    gain: 'No Command per keystroke to keep the URL in step, and the cart survives a reload in a cookie the server reads too.',
+    cost: 'The Model’s shape decides the URL’s; an address that should differ from the state needs a mapping written by hand.',
+  },
+  {
+    change: 'Fewer lines of application code, more library.',
+    gain: 'The app is shorter than upstream’s and has no data-loading code of its own.',
+    cost: 'The most JavaScript of the three, since Remote, the server-rendering client and the style system replace code the app no longer writes.',
+  },
+  {
+    change: 'A young layer on top of Foldkit.',
+    gain: 'Foldkit’s model is kept whole: one Model, a pure update, Commands, the DevTools.',
+    cost: 'Its packages are 0.x and still change between minor versions (0.38.0 changed who may delete in a cascade). It depends on Foldkit’s experimental server rendering, whose checks are most of the render cost.',
+  },
 ]
